@@ -1,0 +1,2 @@
+depth_image_proc:main_thread
+-DCATKIN_DEVEL_PREFIX=/home/mikhail/Desktop/dev/Diploma/ROS/devel -DCMAKE_INSTALL_PREFIX=/home/mikhail/Desktop/dev/Diploma/ROS/install -G Unix Makefiles

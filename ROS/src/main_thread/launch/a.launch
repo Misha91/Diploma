@@ -1,0 +1,21 @@
+<launch>
+
+
+  <!-- Nodelet manager for this pipeline -->
+  <node pkg="nodelet" type="nodelet" args="manager"
+        name="record_player_manager" output="screen"/>
+
+  <!-- Debayer and undistort the rgb image
+       TODO: this should be split into nodelets -->
+
+
+
+  <!-- Convert it into a point cloud -->
+  <node pkg="nodelet" type="nodelet" name="cloudify"
+        args="load depth_image_proc/point_cloud_xyz record_player_manager --no-bond">
+    <!-- <remap from="depth_registered/image_rect" to="camera/depth/image"/> -->
+    <!-- <remap from="depth_registered/points" to="camera/depth_registered/points"/> -->
+    <remap from="image_rect" to="/uav/rs_d435/depth/image_rect_raw"/>
+    <remap from="camera_info" to="/uav/rs_d435/depth/camera_info"/>
+  </node>
+</launch>
