@@ -6,3 +6,4 @@ image_pipeline/
 ROS/build
 ROS/devel
 new/build
+pcl_alg/build

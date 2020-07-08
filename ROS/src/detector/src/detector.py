@@ -58,10 +58,10 @@ class block_detector:
         in_depth = np_data.reshape(depth_data.height, depth_data.width)
         in_depth[np.isnan(in_depth)] = 0
         # convert depth to PIL image and resize
-        depth_image = PILimage.fromarray(in_depth)
-        depth_image = depth_image.resize((in_image.shape[1], in_image.shape[0]))
+        #depth_image = PILimage.fromarray(in_depth)
+        #depth_image = depth_image.resize((in_image.shape[1], in_image.shape[0]))
         # convert depth to numpy back
-        in_depth = np.array(depth_image)
+        #in_depth = np.array(depth_image)
 
         if (self.first_message):
             self.msg_img.header = depth_data.header
@@ -77,13 +77,20 @@ class block_detector:
             self.msg_ci.P = depth_info.P
             self.msg_ci.binning_x = depth_info.binning_x
             self.msg_ci.binning_y = depth_info.binning_y
+
             self.first_message = False
+
+            self.msg_img.height = depth_data.height
+            self.msg_img.width = depth_data.width
+
+            self.msg_ci.height = depth_info.height
+            self.msg_ci.width = depth_info.width
 
         else:
             self.msg_img.header = depth_data.header
             self.msg_ci.header = depth_info.header
         #print(np.max(depth))
-        #print(in_image.shape, in_depth.shape)
+        print(depth_data.step, in_depth.shape)
         hsv = cv2.cvtColor(in_image, cv2.COLOR_BGR2HSV)
         image_with_cnt = in_image.copy()
         countors = {}
@@ -96,25 +103,35 @@ class block_detector:
                 y1,y2 = int(boundRect[i][1]*self.coeff_ratio[1]), int((boundRect[i][1]+boundRect[i][3])*self.coeff_ratio[1])
                 x1, x2 = int(boundRect[i][0]*self.coeff_ratio[0]), int((boundRect[i][0]+boundRect[i][2])*self.coeff_ratio[0])
 
+                #self.msg_img.data = np.zeros(in_depth.shape[0:2]).astype(np.uint16)
+                #self.msg_img.data[y1:y2, x1:x2] = in_depth[y1:y2, x1:x2]
                 self.msg_img.data = in_depth[y1:y2, x1:x2].tostring()
+
                 w_tmp = x2 - x1
                 h_tmp = y2 - y1
                 self.msg_img.height = h_tmp
                 self.msg_img.width = w_tmp
+                self.msg_img.step = w_tmp * 2
 
                 self.msg_ci.height = h_tmp
                 self.msg_ci.width = w_tmp
+                self.msg_ci.roi.height = h_tmp
+                self.msg_ci.roi.width = w_tmp
 
-                print(x1, x2, y1, y2)
+
+                #print(x1, x2, y1, y2)
                 cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
                   (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
-
+                #self.msg_img.header.stamp = rospy.Time.now()
+                #self.msg_ci.header.stamp = rospy.Time.now()
                 self.test_img_data_pub.publish(self.msg_img)
                 self.test_cam_info_pub.publish(self.msg_ci)
+                time.sleep(10)
                 #while(True): pass
 
         if DEBUG:
             tmp_bbox = Image()
+            cv2.cvtColor(image_with_cnt, cv2.COLOR_BGR2RGB)
             tmp_bbox.data = image_with_cnt.tostring()
             tmp_bbox.height = image_with_cnt.shape[0]
             tmp_bbox.width = image_with_cnt.shape[1]
@@ -128,7 +145,7 @@ class block_detector:
 
 
         print("--- %s seconds ---" % (time.time() - start_time))
-        while(True): pass
+        #while(True): pass
         #cv2.imwrite("test.jpg", image_with_cnt)
         #cv2.imshow("test.jpg", image_with_cnt)
         #cv2.imshow("depth", depth)

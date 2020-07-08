@@ -33,7 +33,7 @@
 #define MIN_NUM_POINTS_FOR_PLANE 100
 #define POINTS_FOR_DIST_CHECK 31 // TO BE ODD!
 
-//#define DEBUG
+#define DEBUG
 //supportive funstions - implementation is below main()
 pcl::PointCloud<pcl::PointXYZ>::Ptr smooth(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 float calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon);
@@ -41,7 +41,7 @@ float cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j);
 std::vector <float> calc_dist_to_plane(std::vector <float> &ground_coeffs, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster);
 
 //main algorithm
-void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob)
+void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
 {
   //Step 1. Segment all planes
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>), cloud_p (new pcl::PointCloud<pcl::PointXYZ>), cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
@@ -54,12 +54,20 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob)
 
   // Convert to the templated PointCloud
   pcl::fromPCLPointCloud2 (*cloud_filtered_blob, *cloud_filtered);
-
+  if (cloud_filtered->width * cloud_filtered->height == 0)
+  {
+    printf("NO POINTS ON PLANE! RETURN\n");
+    return;
+  }
   std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height << " data points." << std::endl;
 
   // Create writer
+  #ifdef DEBUG
   pcl::PCDWriter writer;
-
+  std::stringstream ss_init;
+  ss_init << "plane_" << frame_id << ".pcd";
+  writer.write<pcl::PointXYZ> (ss_init.str (), *cloud_filtered, false);
+  #endif
 
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients ());
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices ());
