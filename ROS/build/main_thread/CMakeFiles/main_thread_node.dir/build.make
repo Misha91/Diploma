@@ -57,27 +57,27 @@ include main_thread/CMakeFiles/main_thread_node.dir/progress.make
 # Include the compile flags for this target's objects.
 include main_thread/CMakeFiles/main_thread_node.dir/flags.make
 
-main_thread/CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.o: main_thread/CMakeFiles/main_thread_node.dir/flags.make
-main_thread/CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.o: /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_segm.cpp
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/mikhail/Desktop/dev/Diploma/ROS/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object main_thread/CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.o"
-	cd /home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.o -c /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_segm.cpp
+main_thread/CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.o: main_thread/CMakeFiles/main_thread_node.dir/flags.make
+main_thread/CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.o: /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_checker.cpp
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green --progress-dir=/home/mikhail/Desktop/dev/Diploma/ROS/build/CMakeFiles --progress-num=$(CMAKE_PROGRESS_1) "Building CXX object main_thread/CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.o"
+	cd /home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread && /usr/bin/c++  $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -o CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.o -c /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_checker.cpp
 
-main_thread/CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.i: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.i"
-	cd /home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_segm.cpp > CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.i
+main_thread/CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.i: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Preprocessing CXX source to CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.i"
+	cd /home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -E /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_checker.cpp > CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.i
 
-main_thread/CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.s: cmake_force
-	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.s"
-	cd /home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_segm.cpp -o CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.s
+main_thread/CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.s: cmake_force
+	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --green "Compiling CXX source to assembly CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.s"
+	cd /home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread && /usr/bin/c++ $(CXX_DEFINES) $(CXX_INCLUDES) $(CXX_FLAGS) -S /home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_checker.cpp -o CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.s
 
 # Object files for target main_thread_node
 main_thread_node_OBJECTS = \
-"CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.o"
+"CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.o"
 
 # External object files for target main_thread_node
 main_thread_node_EXTERNAL_OBJECTS =
 
-/home/mikhail/Desktop/dev/Diploma/ROS/devel/lib/main_thread/main_thread_node: main_thread/CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.o
+/home/mikhail/Desktop/dev/Diploma/ROS/devel/lib/main_thread/main_thread_node: main_thread/CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.o
 /home/mikhail/Desktop/dev/Diploma/ROS/devel/lib/main_thread/main_thread_node: main_thread/CMakeFiles/main_thread_node.dir/build.make
 /home/mikhail/Desktop/dev/Diploma/ROS/devel/lib/main_thread/main_thread_node: /opt/ros/kinetic/lib/libpcl_ros_filters.so
 /home/mikhail/Desktop/dev/Diploma/ROS/devel/lib/main_thread/main_thread_node: /opt/ros/kinetic/lib/libpcl_ros_io.so

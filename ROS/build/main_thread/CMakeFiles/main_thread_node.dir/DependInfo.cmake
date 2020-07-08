@@ -4,7 +4,7 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_segm.cpp" "/home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread/CMakeFiles/main_thread_node.dir/src/plane_segm.cpp.o"
+  "/home/mikhail/Desktop/dev/Diploma/ROS/src/main_thread/src/plane_checker.cpp" "/home/mikhail/Desktop/dev/Diploma/ROS/build/main_thread/CMakeFiles/main_thread_node.dir/src/plane_checker.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

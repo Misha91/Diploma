@@ -2,3 +2,7 @@ bags/
 pcd/
 image_pipeline/
 *.pcd
+*.zip
+ROS/build
+ROS/devel
+new/build

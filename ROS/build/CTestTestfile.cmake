@@ -5,5 +5,6 @@
 # This file includes the relevant testing commands required for 
 # testing this directory and lists subdirectories to be tested as well.
 subdirs("gtest")
-subdirs("main_thread")
+subdirs("detector")
+subdirs("pcl_processor")
 subdirs("depth_image_proc")

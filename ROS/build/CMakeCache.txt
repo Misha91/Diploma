@@ -357,6 +357,12 @@ depth_image_proc_LIB_DEPENDS:STATIC=general;/opt/ros/kinetic/lib/libcv_bridge.so
 //Value Computed by CMake
 depth_image_proc_SOURCE_DIR:STATIC=/home/mikhail/Desktop/dev/Diploma/ROS/src/depth_image_proc
 
+//Value Computed by CMake
+detector_BINARY_DIR:STATIC=/home/mikhail/Desktop/dev/Diploma/ROS/build/detector
+
+//Value Computed by CMake
+detector_SOURCE_DIR:STATIC=/home/mikhail/Desktop/dev/Diploma/ROS/src/detector
+
 //The directory containing a CMake configuration file for dynamic_reconfigure.
 dynamic_reconfigure_DIR:PATH=/opt/ros/kinetic/share/dynamic_reconfigure/cmake
 
@@ -459,6 +465,12 @@ pcl_conversions_DIR:PATH=/opt/ros/kinetic/share/pcl_conversions/cmake
 
 //The directory containing a CMake configuration file for pcl_msgs.
 pcl_msgs_DIR:PATH=/opt/ros/kinetic/share/pcl_msgs/cmake
+
+//Value Computed by CMake
+pcl_processor_BINARY_DIR:STATIC=/home/mikhail/Desktop/dev/Diploma/ROS/build/pcl_processor
+
+//Value Computed by CMake
+pcl_processor_SOURCE_DIR:STATIC=/home/mikhail/Desktop/dev/Diploma/ROS/src/pcl_processor
 
 //The directory containing a CMake configuration file for pcl_ros.
 pcl_ros_DIR:PATH=/opt/ros/kinetic/share/pcl_ros/cmake
@@ -663,7 +675,7 @@ CMAKE_MODULE_LINKER_FLAGS_RELWITHDEBINFO-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_NM
 CMAKE_NM-ADVANCED:INTERNAL=1
 //number of local generators
-CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=5
+CMAKE_NUMBER_OF_MAKEFILES:INTERNAL=6
 //ADVANCED property for variable: CMAKE_OBJCOPY
 CMAKE_OBJCOPY-ADVANCED:INTERNAL=1
 //ADVANCED property for variable: CMAKE_OBJDUMP
