@@ -36,6 +36,9 @@ class block_detector:
         self.msg_ci = CameraInfo()
         self.coeff_ratio = []
         self.first_message = True
+        self.K_img_inv = np.eye(3)
+        self.K_depth = np.eye(3)
+        self.K_conv = np.eye(3)
         # time synchronizer
         self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.5)
         self.ts.registerCallback(self.callback)
@@ -57,6 +60,10 @@ class block_detector:
         np_data = np.fromstring(depth_data.data, np.uint16)
         in_depth = np_data.reshape(depth_data.height, depth_data.width)
         in_depth[np.isnan(in_depth)] = 0
+        in_depth = in_depth/10
+        print(os.getcwd())
+        cv2.imwrite("color.jpg", in_image)
+        cv2.imwrite("depth.jpg", in_depth)
         # convert depth to PIL image and resize
         #depth_image = PILimage.fromarray(in_depth)
         #depth_image = depth_image.resize((in_image.shape[1], in_image.shape[0]))
@@ -64,10 +71,28 @@ class block_detector:
         #in_depth = np.array(depth_image)
 
         if (self.first_message):
+
+            self.K_img_inv[0,0] =  cam_info.K[0]
+            self.K_img_inv[0,2] =  cam_info.K[2]
+            self.K_img_inv[1,1] =  cam_info.K[4]
+            self.K_img_inv[1,2] =  cam_info.K[5]
+
+            self.K_img_inv = np.linalg.inv(self.K_img_inv)
+
+            self.K_depth[0,0] =  depth_info.K[0]
+            self.K_depth[0,2] =  depth_info.K[2]
+            self.K_depth[1,1] =  depth_info.K[4]
+            self.K_depth[1,2] =  depth_info.K[5]
+            self.K_conv = self.K_depth.dot(self.K_img_inv)
+
+            print(self.K_img_inv, self.K_depth, self.K_conv)
+
+
+
             self.msg_img.header = depth_data.header
             self.msg_img.encoding = depth_data.encoding
             self.msg_img.is_bigendian = depth_data.is_bigendian
-            self.coeff_ratio = [float(in_depth.shape[1])/float(in_image.shape[1]), float(in_depth.shape[0])/float(in_image.shape[0])]
+            #self.coeff_ratio = [float(in_depth.shape[1])/float(in_image.shape[1]), float(in_depth.shape[0])/float(in_image.shape[0])]
 
             self.msg_ci.header = depth_info.header
             self.msg_ci.distortion_model = depth_info.distortion_model
@@ -90,7 +115,8 @@ class block_detector:
             self.msg_img.header = depth_data.header
             self.msg_ci.header = depth_info.header
         #print(np.max(depth))
-        print(depth_data.step, in_depth.shape)
+
+        #print(np.linalg.inv(np.array([cam_info.P]).reshape(4,3)))
         hsv = cv2.cvtColor(in_image, cv2.COLOR_BGR2HSV)
         image_with_cnt = in_image.copy()
         countors = {}
@@ -100,9 +126,12 @@ class block_detector:
             if (not len(countors[col])) or (not len(boundRect)): continue
             #print(countors[col], contours_poly, boundRect)
             for i in range(len(countors[col])):
-                y1,y2 = int(boundRect[i][1]*self.coeff_ratio[1]), int((boundRect[i][1]+boundRect[i][3])*self.coeff_ratio[1])
-                x1, x2 = int(boundRect[i][0]*self.coeff_ratio[0]), int((boundRect[i][0]+boundRect[i][2])*self.coeff_ratio[0])
+                y1,y2 = int(boundRect[i][1]), int((boundRect[i][1]+boundRect[i][3]))
+                x1, x2 = int(boundRect[i][0]), int((boundRect[i][0]+boundRect[i][2]))
 
+                print("COLOR_IMG: ", x1, x2, y1, y2)
+                x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
+                x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
                 #self.msg_img.data = np.zeros(in_depth.shape[0:2]).astype(np.uint16)
                 #self.msg_img.data[y1:y2, x1:x2] = in_depth[y1:y2, x1:x2]
                 self.msg_img.data = in_depth[y1:y2, x1:x2].tostring()
@@ -119,14 +148,14 @@ class block_detector:
                 self.msg_ci.roi.width = w_tmp
 
 
-                #print(x1, x2, y1, y2)
+                print("DEPTH: ", x1, x2, y1, y2)
                 cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
                   (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
                 #self.msg_img.header.stamp = rospy.Time.now()
                 #self.msg_ci.header.stamp = rospy.Time.now()
                 self.test_img_data_pub.publish(self.msg_img)
                 self.test_cam_info_pub.publish(self.msg_ci)
-                time.sleep(10)
+                #time.sleep(10)
                 #while(True): pass
 
         if DEBUG:
@@ -143,7 +172,7 @@ class block_detector:
         #cv2.addWeighted(overlay, alpha, output, 1 - alpha,
 		#0, output)
 
-
+        while (True): pass
         print("--- %s seconds ---" % (time.time() - start_time))
         #while(True): pass
         #cv2.imwrite("test.jpg", image_with_cnt)
