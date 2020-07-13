@@ -56,7 +56,6 @@ class block_detector:
 
 
     def plane_check_callback(self, msg):
-        print(msg)
         self.pl_ch_msg_list.append(msg.data)
 
     def callback(self, image_data, depth_data, cam_info, depth_info):
@@ -68,15 +67,12 @@ class block_detector:
         np_data = np.fromstring(depth_data.data, np.uint16)
         in_depth = np_data.reshape(depth_data.height, depth_data.width)
         in_depth[np.isnan(in_depth)] = 0
-        in_depth = in_depth/10
-        print(os.getcwd())
-        cv2.imwrite("color.jpg", in_image)
-        cv2.imwrite("depth.jpg", in_depth)
-        # convert depth to PIL image and resize
-        #depth_image = PILimage.fromarray(in_depth)
-        #depth_image = depth_image.resize((in_image.shape[1], in_image.shape[0]))
-        # convert depth to numpy back
-        #in_depth = np.array(depth_image)
+        #in_depth = in_depth/10
+
+        #print(os.getcwd())
+        #cv2.imwrite("color.jpg", in_image)
+        #cv2.imwrite("depth.jpg", in_depth)
+
 
         if (self.first_message):
 
@@ -100,9 +96,9 @@ class block_detector:
             self.msg_img.header = depth_data.header
             self.msg_img.encoding = depth_data.encoding
             self.msg_img.is_bigendian = depth_data.is_bigendian
-            #self.coeff_ratio = [float(in_depth.shape[1])/float(in_image.shape[1]), float(in_depth.shape[0])/float(in_image.shape[0])]
+            self.coeff_ratio = [float(in_depth.shape[1])/float(in_image.shape[1]), float(in_depth.shape[0])/float(in_image.shape[0])]
 
-            self.msg_ci.header = depth_info.header
+            self.msg_ci.header = depth_data.header
             self.msg_ci.distortion_model = depth_info.distortion_model
             self.msg_ci.D = depth_info.D
             self.msg_ci.K = depth_info.K
@@ -121,10 +117,8 @@ class block_detector:
 
         else:
             self.msg_img.header = depth_data.header
-            self.msg_ci.header = depth_info.header
-        #print(np.max(depth))
+            self.msg_ci.header = depth_data.header
 
-        #print(np.linalg.inv(np.array([cam_info.P]).reshape(4,3)))
         hsv = cv2.cvtColor(in_image, cv2.COLOR_BGR2HSV)
         image_with_cnt = in_image.copy()
         countors = {}
@@ -132,16 +126,16 @@ class block_detector:
         for col in self.hsv_filters.keys():
             countors[col], boundRect = self.get_countors(hsv, col)
             if (not len(countors[col])) or (not len(boundRect)): continue
-            #print(countors[col], contours_poly, boundRect)
+
             for i in range(len(countors[col])):
                 y1,y2 = int(boundRect[i][1]), int((boundRect[i][1]+boundRect[i][3]))
                 x1, x2 = int(boundRect[i][0]), int((boundRect[i][0]+boundRect[i][2]))
 
-                print("COLOR_IMG: ", x1, x2, y1, y2)
+                #print("COLOR_IMG: ", x1, x2, y1, y2)
                 x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
                 x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
-                #self.msg_img.data = np.zeros(in_depth.shape[0:2]).astype(np.uint16)
-                #self.msg_img.data[y1:y2, x1:x2] = in_depth[y1:y2, x1:x2]
+                #print("DEPTH: ", x1, x2, y1, y2)
+
                 self.msg_img.data = in_depth[y1:y2, x1:x2].tostring()
 
                 w_tmp = x2 - x1
@@ -156,37 +150,25 @@ class block_detector:
                 self.msg_ci.roi.width = w_tmp
 
 
-                print("DEPTH: ", x1, x2, y1, y2)
-                cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
-              (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
-                #self.msg_img.header.stamp = rospy.Time.now()
-                #self.msg_ci.header.stamp = rospy.Time.now()
-                print("pcd requested at " , rospy.get_rostime())
+
+                #cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
+              #(int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
+
+
                 self.test_img_data_pub.publish(self.msg_img)
                 self.test_cam_info_pub.publish(self.msg_ci)
-                tmp_cnt = 0
+
+
                 while (len(self.pl_ch_msg_list) == 0):
-                    tmp_cnt += 1
-                    if tmp_cnt%100 == 0:
-                        self.test_img_data_pub.publish(self.msg_img)
-                        self.test_cam_info_pub.publish(self.msg_ci)
+                    pass
 
                 answer = self.pl_ch_msg_list.pop(0)
-                print(answer)
-                """
-                try:
-                    answer = rospy.wait_for_message("/plane_check_result", String, timeout = 0.25)
-                    print(answer)
-                    answer = answer.data
-                except:
-                    answer = ""
-                """
-                print("answer at " , rospy.get_rostime())
+
                 if len(answer.split(",")[0]):
                     cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
                   (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), (255,255,255), 3)
 
-                self.pl_ch_msg_list = []
+                #self.pl_ch_msg_list = []
                 #time.sleep(10)
                 #while(True): pass
 
@@ -201,10 +183,8 @@ class block_detector:
             tmp_bbox.is_bigendian = image_data.is_bigendian
             self.bbox_img_data_pub.publish(tmp_bbox)
 
-        #cv2.addWeighted(overlay, alpha, output, 1 - alpha,
-		#0, output)
 
-        #while (True): pass
+
         print("--- %s seconds ---" % (time.time() - start_time))
         #while(True): pass
         #cv2.imwrite("test.jpg", image_with_cnt)

@@ -15,11 +15,13 @@ ros::Publisher chatter_pub;
 
 void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-  clock_t tStart = clock();
+  //clock_t tStart = clock();
+
   #ifdef DEBUG
   ROS_INFO("\nI see points!\n");
   #endif
-  std::cout << "reseived PCD at" << ros::Time::now() << std::endl;
+
+
   static int counter = 0;
   static std::string result;
 
@@ -34,9 +36,10 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   ss << result << "," << counter;
   msg.data = ss.str();
   chatter_pub.publish(msg);
-  std::cout << "published response at" << ros::Time::now() << std::endl;
+
+
   counter++;
-  printf("Time taken: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
+  //printf("Time taken: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
 }
 
 int main(int argc, char **argv)
