@@ -15,10 +15,10 @@ ros::Publisher chatter_pub;
 
 void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 {
-  //clock_t tStart = clock();
+
 
   #ifdef DEBUG
-  ROS_INFO("\nI see points!\n");
+  clock_t tStart = clock();
   #endif
 
 
@@ -29,7 +29,7 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
   pcl::PCLPointCloud2::Ptr cloudPTR (cloud);
 
   pcl_conversions::toPCL(*input, *cloud);
-
+  std::cout << counter << std::endl;
   result = detect_planes(cloudPTR, counter);
   std_msgs::String msg;
   std::stringstream ss;
@@ -39,7 +39,10 @@ void cloud_cb (const sensor_msgs::PointCloud2ConstPtr& input)
 
 
   counter++;
-  //printf("Time taken: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
+
+  #ifdef DEBUG
+  printf("Time taken: %.2fs\n", (double)(clock() - tStart)/CLOCKS_PER_SEC);
+  #endif
 }
 
 int main(int argc, char **argv)

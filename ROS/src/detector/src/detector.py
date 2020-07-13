@@ -10,10 +10,6 @@ from std_msgs.msg import String
 from PIL import Image as PILimage
 from image_geometry import PinholeCameraModel
 import message_filters
-# Pytorch
-#import torch
-
-
 
 DEBUG = 1
 CALIBRATION_MODE = 0
@@ -33,6 +29,7 @@ class block_detector:
         self.pl_ch_msg_list = []
 
         self.bbox_img_data_pub = rospy.Publisher('bbox_image', Image, queue_size=10)
+        self.bbox_cand_img_data_pub = rospy.Publisher('bbox_image_candidate', Image, queue_size=10)
         self.test_img_data_pub = rospy.Publisher('image_rect', Image, queue_size=10)
         self.test_cam_info_pub = rospy.Publisher('camera_info', CameraInfo, queue_size=10)
         self.msg_img = Image()
@@ -42,8 +39,11 @@ class block_detector:
         self.K_img_inv = np.eye(3)
         self.K_depth = np.eye(3)
         self.K_conv = np.eye(3)
+
+        self.enlarge_coeff = 1.4
+
         # time synchronizer
-        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.05)
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.01)
         self.ts.registerCallback(self.callback)
         self.area_thresh = 400
         self.max_lines_contour = 15
@@ -53,6 +53,18 @@ class block_detector:
         self.hsv_filters['g']  = [[70 , 95, 15], [85, 255, 255], [85 , 60, 30], [100, 238, 238]]
         self.hsv_filters['r']  = [[0, 35, 0], [10, 255, 255], [170, 40, 0], [175, 255, 255]] #130 180
         self.cnt_colours = {'b' : (255,0,0), 'g' : (0,255,0), 'r' : (0,0,255)}
+
+    def enlarge_crop(self, x1, x2, y1, y2):
+
+        x_center = (x1 + x2) / 2.0
+        y_center = (y1 + y2) / 2.0
+        x_dist = (abs(x2 - x1) / 2.0) * self.enlarge_coeff
+        y_dist = (abs(y2 - y1) / 2.0) * self.enlarge_coeff
+
+        x1, x2, y1, y2 = x_center - x_dist, x_center + x_dist, y_center - y_dist, y_center + y_dist
+        x1, x2, y1, y2 = 0 if x1 < 0 else x1, 0 if x2 < 0 else x2, 0 if y1 < 0 else y1,  0 if y2 < 0 else y2
+
+        return x1, x2, y1, y2
 
 
     def plane_check_callback(self, msg):
@@ -69,7 +81,6 @@ class block_detector:
         in_depth[np.isnan(in_depth)] = 0
         #in_depth = in_depth/10
 
-        #print(os.getcwd())
         #cv2.imwrite("color.jpg", in_image)
         #cv2.imwrite("depth.jpg", in_depth)
 
@@ -88,10 +99,6 @@ class block_detector:
             self.K_depth[1,1] =  depth_info.K[4]
             self.K_depth[1,2] =  depth_info.K[5]
             self.K_conv = self.K_depth.dot(self.K_img_inv)
-
-            print(self.K_img_inv, self.K_depth, self.K_conv)
-
-
 
             self.msg_img.header = depth_data.header
             self.msg_img.encoding = depth_data.encoding
@@ -120,6 +127,7 @@ class block_detector:
             self.msg_ci.header = depth_data.header
 
         hsv = cv2.cvtColor(in_image, cv2.COLOR_BGR2HSV)
+        image_with_candidate = in_image.copy()
         image_with_cnt = in_image.copy()
         countors = {}
 
@@ -131,6 +139,7 @@ class block_detector:
                 y1,y2 = int(boundRect[i][1]), int((boundRect[i][1]+boundRect[i][3]))
                 x1, x2 = int(boundRect[i][0]), int((boundRect[i][0]+boundRect[i][2]))
 
+                x1, x2, y1, y2 = self.enlarge_crop(x1, x2, y1, y2)
                 #print("COLOR_IMG: ", x1, x2, y1, y2)
                 x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
                 x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
@@ -151,8 +160,8 @@ class block_detector:
 
 
 
-                #cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
-              #(int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
+                cv2.rectangle(image_with_candidate, (int(boundRect[i][0]), int(boundRect[i][1])), \
+              (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
 
 
                 self.test_img_data_pub.publish(self.msg_img)
@@ -174,7 +183,7 @@ class block_detector:
 
         if DEBUG:
             tmp_bbox = Image()
-            cv2.cvtColor(image_with_cnt, cv2.COLOR_BGR2RGB)
+            #cv2.cvtColor(image_with_cnt, cv2.COLOR_BGR2RGB)
             tmp_bbox.data = image_with_cnt.tostring()
             tmp_bbox.height = image_with_cnt.shape[0]
             tmp_bbox.width = image_with_cnt.shape[1]
@@ -182,6 +191,8 @@ class block_detector:
             tmp_bbox.encoding = image_data.encoding
             tmp_bbox.is_bigendian = image_data.is_bigendian
             self.bbox_img_data_pub.publish(tmp_bbox)
+            tmp_bbox.data = image_with_candidate.tostring()
+            self.bbox_cand_img_data_pub.publish(tmp_bbox)
 
 
 

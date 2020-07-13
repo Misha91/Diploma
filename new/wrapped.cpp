@@ -28,12 +28,12 @@
 #include <pcl/surface/convex_hull.h>
 #include <Eigen/Dense>
 
-#define SEGM_DIST_THRESHOLD 0.1//0.01 0.1
+#define SEGM_DIST_THRESHOLD 0.01  //0.01 0.1
 #define CONV_DIST_THRESHOLD 0.01//0.01
 #define MIN_NUM_POINTS_FOR_PLANE 100
 #define POINTS_FOR_DIST_CHECK 31 // TO BE ODD!
 
-//#define DEBUG
+#define DEBUG
 //supportive funstions - implementation is below main()
 pcl::PointCloud<pcl::PointXYZ>::Ptr smooth(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
 float calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon);
@@ -128,7 +128,7 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob)
 
   //STEP 2. CHECK PLANES
   int j = 0, l = 0;
-  for (i = 1; i< segm_planes.size() ; i++)
+  for (i = 0; i< segm_planes.size() ; i++)
   {
     printf("Checking plane #%d\n", i);
 
@@ -141,8 +141,10 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob)
     writer.write<pcl::PointXYZ> (ss_tmp.str (), *cloudPTR, false);
     #endif
 
+    if (i == 0) continue;
     //STEP 3. CHECK DISTANCE. Discard if far from expected object's height
 
+    /*
     dist_vector = calc_dist_to_plane(ground_coeffs, cloudPTR);
     if (dist_vector[1] > 0.23 || dist_vector[1] < 0.10)
     {
@@ -154,7 +156,7 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob)
       writer.write<pcl::PointXYZ> (ss.str (), *cloudPTR, false);
       #endif
       continue;
-    }
+    }*/
     //END OF STEP 3
 
     //STEP 4. Split planes on separate cluster
@@ -185,7 +187,7 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob)
 
       std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
       dist_vector = calc_dist_to_plane(ground_coeffs, cloud_cluster);
-      if (dist_vector[0] > 0.30 || dist_vector[0] < 0.17 )
+      if (dist_vector[0] > 0.30 || dist_vector[2] < 0.10 )
       {
         printf("rejected %d\n", i * 100 + l);
         #ifdef DEBUG

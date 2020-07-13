@@ -30,7 +30,7 @@
 
 #define SEGM_DIST_THRESHOLD 0.1//0.01 0.1
 #define CONV_DIST_THRESHOLD 0.01//0.01
-#define MIN_NUM_POINTS_FOR_PLANE 100
+#define MIN_NUM_POINTS_FOR_PLANE 250
 #define POINTS_FOR_DIST_CHECK 31 // TO BE ODD!
 
 #define DEBUG
@@ -120,8 +120,8 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     }
 
 
-
-    segm_planes.push_back(*cloud_p);
+    if (cloud_p->points.size() >= MIN_NUM_POINTS_FOR_PLANE)
+      segm_planes.push_back(*cloud_p);
 
     // Create the filtering object
     extract.setNegative (true);
@@ -157,7 +157,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     #endif
 
     //STEP 3. CHECK DISTANCE. Discard if far from expected object's height
-
+    /*
     dist_vector = calc_dist_to_plane(ground_coeffs, cloudPTR);
     if (dist_vector[1] > 0.23 || dist_vector[1] < 0.10)
     {
@@ -169,11 +169,12 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
       writer.write<pcl::PointXYZ> (ss.str (), *cloudPTR, false);
       #endif
       continue;
-    }
+    }*/
     //END OF STEP 3
 
     //STEP 4. Split planes on separate cluster
-    std::cerr << "PointCloud representing the planar component: " << cloudPTR->width * cloudPTR->height << " data points." << std::endl;
+
+    std::cerr << "PointCloud representing the planar component: " << cloudPTR->points.size() << " data points." << std::endl;
 
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
     tree->setInputCloud (cloudPTR);
@@ -200,7 +201,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
 
       std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
       dist_vector = calc_dist_to_plane(ground_coeffs, cloud_cluster);
-      if (dist_vector[0] > 0.30 || dist_vector[0] < 0.17 )
+      if (dist_vector[0] > 0.30 || dist_vector[2] < 0.05 )
       {
         printf("rejected %d\n", i * 100 + l);
         #ifdef DEBUG
@@ -212,7 +213,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
       }
 
       float plane_area = cacl_area(cloud_cluster, j);
-      if (plane_area > 0.05 )
+      if (plane_area > 0.025 )
       {
         std::stringstream ss;
         ss << "candidate_" << j << ".pcd";
