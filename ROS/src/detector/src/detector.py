@@ -43,7 +43,7 @@ class block_detector:
         self.K_depth = np.eye(3)
         self.K_conv = np.eye(3)
         # time synchronizer
-        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.5)
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.05)
         self.ts.registerCallback(self.callback)
         self.area_thresh = 400
         self.max_lines_contour = 15
