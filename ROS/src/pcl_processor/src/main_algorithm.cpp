@@ -41,8 +41,9 @@ float cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j);
 std::vector <float> calc_dist_to_plane(std::vector <float> &ground_coeffs, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster);
 
 //main algorithm
-void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
+std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
 {
+  std::string toRet;
   //Step 1. Segment all planes
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>), cloud_p (new pcl::PointCloud<pcl::PointXYZ>), cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PCLPointCloud2::Ptr cloud_filtered_blob (new pcl::PCLPointCloud2);
@@ -57,7 +58,7 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
   if (cloud_filtered->width * cloud_filtered->height == 0)
   {
     printf("NO POINTS ON PLANE! RETURN\n");
-    return;
+    return toRet;
   }
   std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height << " data points." << std::endl;
 
@@ -133,7 +134,7 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
   if ((int)segm_planes.size() == 1)
   {
     printf("JUST GROUND PLANE! RETURN\n");
-    return;
+    return toRet;
   }
 
   // END OF STEP 1
@@ -215,6 +216,7 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
       {
         std::stringstream ss;
         ss << "candidate_" << j << ".pcd";
+        toRet.append("1");
         writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster, false);
         std::cout << ss.str () << " is stored!" << std::endl;
         j++;
@@ -225,6 +227,7 @@ void detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     //END OF STEP 3
   }
   //END OF STEP 2
+  return toRet;
 }
 
 

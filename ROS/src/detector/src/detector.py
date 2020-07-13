@@ -6,6 +6,7 @@ import cv2
 import rospy
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PointStamped
+from std_msgs.msg import String
 from PIL import Image as PILimage
 from image_geometry import PinholeCameraModel
 import message_filters
@@ -28,6 +29,8 @@ class block_detector:
         self.cam_info_subscriber = message_filters.Subscriber("/uav/rs_d435/color/camera_info", CameraInfo)
         self.depth_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/image_rect_raw", Image)
         self.depth_info_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/camera_info", CameraInfo)
+        self.plane_check_subscriber = rospy.Subscriber("/plane_check_result", String, self.plane_check_callback)
+        self.pl_ch_msg_list = []
 
         self.bbox_img_data_pub = rospy.Publisher('bbox_image', Image, queue_size=10)
         self.test_img_data_pub = rospy.Publisher('image_rect', Image, queue_size=10)
@@ -50,6 +53,11 @@ class block_detector:
         self.hsv_filters['g']  = [[70 , 95, 15], [85, 255, 255], [85 , 60, 30], [100, 238, 238]]
         self.hsv_filters['r']  = [[0, 35, 0], [10, 255, 255], [170, 40, 0], [175, 255, 255]] #130 180
         self.cnt_colours = {'b' : (255,0,0), 'g' : (0,255,0), 'r' : (0,0,255)}
+
+
+    def plane_check_callback(self, msg):
+        print(msg)
+        self.pl_ch_msg_list.append(msg.data)
 
     def callback(self, image_data, depth_data, cam_info, depth_info):
         start_time = time.time()
@@ -150,11 +158,35 @@ class block_detector:
 
                 print("DEPTH: ", x1, x2, y1, y2)
                 cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
-                  (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
+              (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
                 #self.msg_img.header.stamp = rospy.Time.now()
                 #self.msg_ci.header.stamp = rospy.Time.now()
+                print("pcd requested at " , rospy.get_rostime())
                 self.test_img_data_pub.publish(self.msg_img)
                 self.test_cam_info_pub.publish(self.msg_ci)
+                tmp_cnt = 0
+                while (len(self.pl_ch_msg_list) == 0):
+                    tmp_cnt += 1
+                    if tmp_cnt%100 == 0:
+                        self.test_img_data_pub.publish(self.msg_img)
+                        self.test_cam_info_pub.publish(self.msg_ci)
+
+                answer = self.pl_ch_msg_list.pop(0)
+                print(answer)
+                """
+                try:
+                    answer = rospy.wait_for_message("/plane_check_result", String, timeout = 0.25)
+                    print(answer)
+                    answer = answer.data
+                except:
+                    answer = ""
+                """
+                print("answer at " , rospy.get_rostime())
+                if len(answer.split(",")[0]):
+                    cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
+                  (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), (255,255,255), 3)
+
+                self.pl_ch_msg_list = []
                 #time.sleep(10)
                 #while(True): pass
 
@@ -172,7 +204,7 @@ class block_detector:
         #cv2.addWeighted(overlay, alpha, output, 1 - alpha,
 		#0, output)
 
-        while (True): pass
+        #while (True): pass
         print("--- %s seconds ---" % (time.time() - start_time))
         #while(True): pass
         #cv2.imwrite("test.jpg", image_with_cnt)
