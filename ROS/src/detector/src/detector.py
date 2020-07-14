@@ -21,7 +21,7 @@ CAL_PRINT_SINGLE = 0
 class block_detector:
     def __init__(self):
         rospy.init_node('block_detector')
-        self.image_subscriber = message_filters.Subscriber("/uav/rs_d435/color/image_raw", Image)
+        self.image_subscriber = message_filters.Subscriber("/uav/rs_d435/color/image_raw", Image) #/uav/rs_d435/color/image_raw
         self.cam_info_subscriber = message_filters.Subscriber("/uav/rs_d435/color/camera_info", CameraInfo)
         self.depth_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/image_rect_raw", Image)
         self.depth_info_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/camera_info", CameraInfo)
@@ -43,15 +43,20 @@ class block_detector:
         self.enlarge_coeff = 1.4
 
         # time synchronizer
-        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.01)
+        self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.1)
         self.ts.registerCallback(self.callback)
         self.area_thresh = 400
         self.max_lines_contour = 15
         self.approx_coeff = 0.01 #0.02
         self.hsv_filters = {}
+        """
         self.hsv_filters['b']  = [[95, 115, 45], [105, 255, 255], [105, 95, 45], [130, 255, 255]]
         self.hsv_filters['g']  = [[70 , 95, 15], [85, 255, 255], [85 , 60, 30], [100, 238, 238]]
         self.hsv_filters['r']  = [[0, 35, 0], [10, 255, 255], [170, 40, 0], [175, 255, 255]] #130 180
+        """
+        self.hsv_filters['b']  = [[97, 140, 75], [108, 255, 255]]
+        self.hsv_filters['g']  = [[78 , 65, 35], [97, 255, 255]]
+        self.hsv_filters['r']  = [[0, 100, 80], [6, 255, 255], [170, 100, 80], [180, 255, 255]] #130 180
         self.cnt_colours = {'b' : (255,0,0), 'g' : (0,255,0), 'r' : (0,0,255)}
 
 
