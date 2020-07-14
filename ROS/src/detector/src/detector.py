@@ -54,6 +54,12 @@ class block_detector:
         self.hsv_filters['r']  = [[0, 35, 0], [10, 255, 255], [170, 40, 0], [175, 255, 255]] #130 180
         self.cnt_colours = {'b' : (255,0,0), 'g' : (0,255,0), 'r' : (0,0,255)}
 
+
+    def calc_region_area(self, x1, x2, y1, y2):
+        x_dist = abs(x2 - x1)
+        y_dist = abs(y2 - y1)
+        return x_dist * y_dist
+
     def enlarge_crop(self, x1, x2, y1, y2):
 
         x_center = (x1 + x2) / 2.0
@@ -75,7 +81,7 @@ class block_detector:
         np_data = np.fromstring(image_data.data, np.uint8)
 
         in_image = cv2.cvtColor(np_data.reshape(image_data.height, image_data.width,3), cv2.COLOR_RGB2BGR)
-
+        #in_image = np_data.reshape(image_data.height, image_data.width,3)
         np_data = np.fromstring(depth_data.data, np.uint16)
         in_depth = np_data.reshape(depth_data.height, depth_data.width)
         in_depth[np.isnan(in_depth)] = 0
@@ -130,6 +136,7 @@ class block_detector:
         image_with_candidate = in_image.copy()
         image_with_cnt = in_image.copy()
         countors = {}
+        bboxes = []
 
         for col in self.hsv_filters.keys():
             countors[col], boundRect = self.get_countors(hsv, col)
@@ -138,9 +145,25 @@ class block_detector:
             for i in range(len(countors[col])):
                 y1,y2 = int(boundRect[i][1]), int((boundRect[i][1]+boundRect[i][3]))
                 x1, x2 = int(boundRect[i][0]), int((boundRect[i][0]+boundRect[i][2]))
+                area = self.calc_region_area(x1, x2, y1, y2)
+                bboxes.append([area, x1, x2, y1, y2, col])
+
+        bbox_voter = np.zeros((in_image.shape[0], in_image.shape[1]), dtype=np.uint8)
+        bboxes.sort(reverse=True)
+        for bbox in bboxes:
+            area, x1, x2, y1, y2, col = bbox
+            dummy = np.zeros((in_image.shape[0], in_image.shape[1]), dtype=np.uint8)
+            dummy[y1:y2, x1:x2] = 1
+            a =  (np.logical_and(bbox_voter, dummy)).astype(np.uint8)
+            intersection = np.sum(a) / float(area)
+            print(intersection)
+            #print(bbox)
+            if intersection < 0.66:
+            #if True:
+                bbox_voter[y1:y2, x1:x2] = 1
 
                 x1, x2, y1, y2 = self.enlarge_crop(x1, x2, y1, y2)
-                #print("COLOR_IMG: ", x1, x2, y1, y2)
+                print("COLOR_IMG: ", x1, x2, y1, y2)
                 x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
                 x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
                 #print("DEPTH: ", x1, x2, y1, y2)
@@ -160,30 +183,28 @@ class block_detector:
 
 
 
-                cv2.rectangle(image_with_candidate, (int(boundRect[i][0]), int(boundRect[i][1])), \
-              (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), self.cnt_colours[col], 2)
+                cv2.rectangle(image_with_candidate, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
 
-                self.test_img_data_pub.publish(self.msg_img)
-                self.test_cam_info_pub.publish(self.msg_ci)
+                #self.test_img_data_pub.publish(self.msg_img)
+                #self.test_cam_info_pub.publish(self.msg_ci)
 
-
+                """
                 while (len(self.pl_ch_msg_list) == 0):
                     pass
 
                 answer = self.pl_ch_msg_list.pop(0)
 
                 if len(answer.split(",")[0]):
-                    cv2.rectangle(image_with_cnt, (int(boundRect[i][0]), int(boundRect[i][1])), \
-                  (int(boundRect[i][0]+boundRect[i][2]), int(boundRect[i][1]+boundRect[i][3])), (255,255,255), 3)
-
+                    cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), (255,255,255), 3)
+                """
                 #self.pl_ch_msg_list = []
                 #time.sleep(10)
                 #while(True): pass
 
         if DEBUG:
             tmp_bbox = Image()
-            #cv2.cvtColor(image_with_cnt, cv2.COLOR_BGR2RGB)
+            image_with_cnt = cv2.cvtColor(image_with_cnt, cv2.COLOR_BGR2RGB)
             tmp_bbox.data = image_with_cnt.tostring()
             tmp_bbox.height = image_with_cnt.shape[0]
             tmp_bbox.width = image_with_cnt.shape[1]
@@ -191,6 +212,7 @@ class block_detector:
             tmp_bbox.encoding = image_data.encoding
             tmp_bbox.is_bigendian = image_data.is_bigendian
             self.bbox_img_data_pub.publish(tmp_bbox)
+            image_with_candidate = cv2.cvtColor(image_with_candidate, cv2.COLOR_BGR2RGB)
             tmp_bbox.data = image_with_candidate.tostring()
             self.bbox_cand_img_data_pub.publish(tmp_bbox)
 
