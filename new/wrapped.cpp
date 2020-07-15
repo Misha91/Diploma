@@ -28,7 +28,7 @@
 #include <pcl/surface/convex_hull.h>
 #include <Eigen/Dense>
 
-#define SEGM_DIST_THRESHOLD 0.01  //0.01 0.1
+#define SEGM_DIST_THRESHOLD 0.1  //0.01 0.1
 #define CONV_DIST_THRESHOLD 0.01//0.01
 #define MIN_NUM_POINTS_FOR_PLANE 100
 #define POINTS_FOR_DIST_CHECK 31 // TO BE ODD!

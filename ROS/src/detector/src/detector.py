@@ -40,7 +40,7 @@ class block_detector:
         self.K_depth = np.eye(3)
         self.K_conv = np.eye(3)
 
-        self.enlarge_coeff = 1.4
+        self.enlarge_coeff = 1.25 #1.4
 
         # time synchronizer
         self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.1)
@@ -90,6 +90,9 @@ class block_detector:
         np_data = np.fromstring(depth_data.data, np.uint16)
         in_depth = np_data.reshape(depth_data.height, depth_data.width)
         in_depth[np.isnan(in_depth)] = 0
+
+
+
         #in_depth = in_depth/10
 
         #cv2.imwrite("color.jpg", in_image)
@@ -172,8 +175,13 @@ class block_detector:
                 x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
                 x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
                 #print("DEPTH: ", x1, x2, y1, y2)
+                mean_dist = in_depth[y1:y2, x1:x2].mean()
+                print(mean_dist, area)
+                if (mean_dist < 700): continue
 
                 self.msg_img.data = in_depth[y1:y2, x1:x2].tostring()
+
+
 
                 w_tmp = x2 - x1
                 h_tmp = y2 - y1
@@ -191,18 +199,18 @@ class block_detector:
                 cv2.rectangle(image_with_candidate, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
 
-                #self.test_img_data_pub.publish(self.msg_img)
-                #self.test_cam_info_pub.publish(self.msg_ci)
+                self.test_img_data_pub.publish(self.msg_img)
+                self.test_cam_info_pub.publish(self.msg_ci)
 
-                """
+
                 while (len(self.pl_ch_msg_list) == 0):
                     pass
 
                 answer = self.pl_ch_msg_list.pop(0)
 
                 if len(answer.split(",")[0]):
-                    cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), (255,255,255), 3)
-                """
+                    cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
+
                 #self.pl_ch_msg_list = []
                 #time.sleep(10)
                 #while(True): pass
