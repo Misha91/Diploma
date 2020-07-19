@@ -176,7 +176,7 @@ class block_detector:
             print("COLOR_IMG: ", col, x1, x2, y1, y2, intersection)
 
             #print(bbox)
-            if intersection < 0.85:
+            if intersection < 0.8:
             #if True:
                 bbox_voter[y1:y2, x1:x2] = 1
 
@@ -221,7 +221,9 @@ class block_detector:
                 if len(answer) > 2:
                     zones = answer.split(",")[0]
                     zones = zones[:-1].split("x")
+                    tmp_buffer = []
                     if len(zones) and len(zones[0]):
+                        tmp_buffer = []
                         for z in zones:
 
                             tmp = z.split("#")
@@ -229,11 +231,16 @@ class block_detector:
                             area = float(tmp[0])
                             proj = self.P_img.dot(np.array([tmp[1], tmp[2], tmp[3], 1.], dtype=float))
                             proj /= proj[-1]
-                            x1, y1, _ = proj
+
+                            tmp_buffer.append([area, proj])
                             print(area, proj)
-                            print(col, "True")
-                            cv2.circle(image_with_cnt, (int((bbox[1] + bbox[2]) / 2. + x1), int((bbox[3] + bbox[4])/2. + y1)) , 10, self.cnt_colours[col], 5)
-                            cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
+
+                    tmp_buffer.sort(reverse=True)
+                    for i, z in enumerate(tmp_buffer):
+                        x1, y1, _ = z[1]
+                        cv2.circle(image_with_cnt, (int((bbox[1] + bbox[2]) / 2. + x1), int((bbox[3] + bbox[4])/2. + y1)) , 10, self.cnt_colours[col], 5)
+                        if tmp_buffer[0][0]/float(z[0]) >= 7 or i >= 2: break
+                    cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
                 #self.pl_ch_msg_list = []
                 #time.sleep(10)
