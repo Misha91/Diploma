@@ -3,9 +3,9 @@ pcd/
 image_pipeline/
 *.pcd
 *.zip
-ROS/build
-ROS/devel
-new/build
+ROS/build/*
+ROS/devel/*
+new/build/*
 pcl_alg/build
 hsv_tool/1
 hsv_tool/2

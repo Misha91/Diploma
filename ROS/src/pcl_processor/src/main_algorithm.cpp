@@ -5,6 +5,7 @@
 #include <pcl/filters/filter.h>
 
 #include <vector>
+#include <string>
 #include <stdlib.h>
 #include <iostream>
 #include <cmath>
@@ -28,7 +29,7 @@
 #include <pcl/surface/convex_hull.h>
 #include <Eigen/Dense>
 
-#define SEGM_DIST_THRESHOLD 0.1//0.01 0.1
+#define SEGM_DIST_THRESHOLD 0.05// 0.1
 #define CONV_DIST_THRESHOLD 0.01//0.01
 #define MIN_NUM_POINTS_FOR_PLANE 100
 #define POINTS_FOR_DIST_CHECK 31 // TO BE ODD!
@@ -36,8 +37,8 @@
 //#define DEBUG
 //supportive funstions - implementation is below main()
 pcl::PointCloud<pcl::PointXYZ>::Ptr smooth(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud);
-float calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon);
-float cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j);
+std::vector <float> calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon);
+std::vector <float> cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j);
 std::vector <float> calc_dist_to_plane(std::vector <float> &ground_coeffs, pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster);
 
 //main algorithm
@@ -162,7 +163,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     //STEP 3. CHECK DISTANCE. Discard if far from expected object's height
 
     dist_vector = calc_dist_to_plane(ground_coeffs, cloudPTR);
-    if (dist_vector[1] > 0.23 || dist_vector[1] < 0.095)
+    if (dist_vector[1] > 0.23 || dist_vector[1] < 0.08)
     {
       printf("rejected %d\n", i);
 
@@ -203,7 +204,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
 
       std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
       dist_vector = calc_dist_to_plane(ground_coeffs, cloud_cluster);
-      if (dist_vector[0] > 0.25 || dist_vector[2] < 0.095 )
+      if ((dist_vector[0] > 0.25 || dist_vector[2] < 0.05) || dist_vector[1] < 0.09)
       {
         printf("rejected %d\n", i * 100 + l);
         #ifdef DEBUG
@@ -213,9 +214,9 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
         #endif
         continue;
       }
+      std::vector <float> area_center = cacl_area(cloud_cluster, j);
 
-      float plane_area = cacl_area(cloud_cluster, j);
-      if (plane_area > 0.01 ) //0.05
+      if (area_center[0] > 0.01 ) //0.05
       {
         #ifdef DEBUG
         std::stringstream ss;
@@ -224,7 +225,17 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
         writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster, false);
         std::cout << ss.str () << " is stored!" << std::endl;
         #endif
-        toRet.append("1");
+
+
+        toRet += std::to_string(area_center[0]);
+        toRet += "#";
+        toRet += std::to_string(area_center[1]);
+        toRet += "#";
+        toRet += std::to_string(area_center[2]);
+        toRet += "#";
+        toRet += std::to_string(area_center[3]);
+        toRet += "x";
+
         j++;
       }
 
@@ -272,15 +283,20 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr smooth(pcl::PointCloud<pcl::PointXYZ>::Ptr c
   return mls_cloud;
 }
 
-float calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon )
+std::vector <float> calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon )
 {
+  std::vector <float> result;
   float area=0.0;
   int num_points = polygon.size();
   int j = 0;
+  float x_c = 0, y_c = 0, z_c = 0;
   Eigen::Vector3f va,vb,res;
   res(0) = res(1) = res(2) = 0.0f;
   for (int i = 0; i < num_points; ++i)
   {
+      x_c += polygon.points[i].x;
+      y_c += polygon.points[i].y;
+      z_c += polygon.points[i].z;
       j = (i + 1) % num_points;
       va = polygon[i].getVector3fMap();
       vb = polygon[j].getVector3fMap();
@@ -288,12 +304,20 @@ float calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon )
       //std::cerr << va << std::endl;
   }
   area=res.norm();
-  std::cerr << "Area is " << area*0.5 << std::endl;
-  return area*0.5;
+  x_c /= num_points;
+  y_c /= num_points;
+  z_c /= num_points;
+  result.push_back(area*0.5);
+  result.push_back(x_c);
+  result.push_back(y_c);
+  result.push_back(z_c);
+  std::cerr << "Area is " << result[0] << std::endl;
+  return result;
 }
 
-float cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
+std::vector <float> cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
 {
+  std::vector <float> result(4,0);
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>),
                                       cloud_projected (new pcl::PointCloud<pcl::PointXYZ>);
 
@@ -308,7 +332,7 @@ float cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
   if (cloud_filtered->points.size () == 0)
   {
 
-    return 0;
+    return result;
   }
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
 
@@ -349,7 +373,8 @@ float cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
 
   std::cerr << "Convex hull has: " << cloud_hull->points.size ()
             << " data points." << std::endl;
-  float plane_area = calculateAreaPolygon(*cloud_hull);
+  result = calculateAreaPolygon(*cloud_hull);
+
   #ifdef DEBUG
   pcl::PCDWriter writer;
   std::stringstream ss;
@@ -360,7 +385,7 @@ float cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
 
   //
   //writer.write ("table_scene_mug_stereo_textured_hull.pcd", *cloud_hull, false);
-  return plane_area;
+  return result;
 
 }
 

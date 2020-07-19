@@ -36,8 +36,11 @@ class block_detector:
         self.msg_ci = CameraInfo()
         self.coeff_ratio = []
         self.first_message = True
+        self.P_img = np.zeros((3,4))
+        self.K_img = np.eye(3)
         self.K_img_inv = np.eye(3)
         self.K_depth = np.eye(3)
+        self.K_conv_depth = np.eye(3)
         self.K_conv = np.eye(3)
 
         self.enlarge_coeff = 1.25 #1.4
@@ -101,18 +104,23 @@ class block_detector:
 
         if (self.first_message):
 
-            self.K_img_inv[0,0] =  cam_info.K[0]
-            self.K_img_inv[0,2] =  cam_info.K[2]
-            self.K_img_inv[1,1] =  cam_info.K[4]
-            self.K_img_inv[1,2] =  cam_info.K[5]
+            self.K_img[0,0] =  cam_info.K[0]
+            self.K_img[0,2] =  cam_info.K[2]
+            self.K_img[1,1] =  cam_info.K[4]
+            self.K_img[1,2] =  cam_info.K[5]
 
-            self.K_img_inv = np.linalg.inv(self.K_img_inv)
+
+            self.K_img_inv = np.linalg.inv(self.K_img)
 
             self.K_depth[0,0] =  depth_info.K[0]
             self.K_depth[0,2] =  depth_info.K[2]
             self.K_depth[1,1] =  depth_info.K[4]
             self.K_depth[1,2] =  depth_info.K[5]
+
+            self.P_img[0:3, 0:3] = self.K_img
+
             self.K_conv = self.K_depth.dot(self.K_img_inv)
+            self.K_conv_depth = self.K_img.dot(np.linalg.inv(self.K_depth))
 
             self.msg_img.header = depth_data.header
             self.msg_img.encoding = depth_data.encoding
@@ -125,6 +133,7 @@ class block_detector:
             self.msg_ci.K = depth_info.K
             self.msg_ci.R = depth_info.R
             self.msg_ci.P = depth_info.P
+            print(self.msg_ci.P)
             self.msg_ci.binning_x = depth_info.binning_x
             self.msg_ci.binning_y = depth_info.binning_y
 
@@ -164,14 +173,15 @@ class block_detector:
             dummy[y1:y2, x1:x2] = 1
             a =  (np.logical_and(bbox_voter, dummy)).astype(np.uint8)
             intersection = np.sum(a) / float(area)
-            print(intersection)
+            print("COLOR_IMG: ", col, x1, x2, y1, y2, intersection)
+
             #print(bbox)
-            if intersection < 0.66:
+            if intersection < 0.85:
             #if True:
                 bbox_voter[y1:y2, x1:x2] = 1
 
                 x1, x2, y1, y2 = self.enlarge_crop(x1, x2, y1, y2)
-                print("COLOR_IMG: ", x1, x2, y1, y2)
+
                 x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
                 x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
                 #print("DEPTH: ", x1, x2, y1, y2)
@@ -207,9 +217,23 @@ class block_detector:
                     pass
 
                 answer = self.pl_ch_msg_list.pop(0)
+                print(answer)
+                if len(answer) > 2:
+                    zones = answer.split(",")[0]
+                    zones = zones[:-1].split("x")
+                    if len(zones) and len(zones[0]):
+                        for z in zones:
 
-                if len(answer.split(",")[0]):
-                    cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
+                            tmp = z.split("#")
+                            print(tmp)
+                            area = float(tmp[0])
+                            proj = self.P_img.dot(np.array([tmp[1], tmp[2], tmp[3], 1.], dtype=float))
+                            proj /= proj[-1]
+                            x1, y1, _ = proj
+                            print(area, proj)
+                            print(col, "True")
+                            cv2.circle(image_with_cnt, (int((bbox[1] + bbox[2]) / 2. + x1), int((bbox[3] + bbox[4])/2. + y1)) , 10, self.cnt_colours[col], 5)
+                            cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
                 #self.pl_ch_msg_list = []
                 #time.sleep(10)

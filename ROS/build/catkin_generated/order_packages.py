@@ -2,4 +2,4 @@
 source_root_dir = "/home/mikhail/Desktop/dev/Diploma/ROS/src"
 whitelisted_packages = "".split(';') if "" != "" else []
 blacklisted_packages = "".split(';') if "" != "" else []
-underlay_workspaces = "/home/mikhail/Desktop/dev/Diploma/ROS/devel;/opt/ros/kinetic".split(';') if "/home/mikhail/Desktop/dev/Diploma/ROS/devel;/opt/ros/kinetic" != "" else []
+underlay_workspaces = "/opt/ros/kinetic".split(';') if "/opt/ros/kinetic" != "" else []

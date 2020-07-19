@@ -28,7 +28,7 @@
 #include <pcl/surface/convex_hull.h>
 #include <Eigen/Dense>
 
-#define SEGM_DIST_THRESHOLD 0.1  //0.01 0.1
+#define SEGM_DIST_THRESHOLD 0.03  //0.01 0.1
 #define CONV_DIST_THRESHOLD 0.01//0.01
 #define MIN_NUM_POINTS_FOR_PLANE 100
 #define POINTS_FOR_DIST_CHECK 31 // TO BE ODD!
@@ -416,7 +416,7 @@ std::vector <float> calc_dist_to_plane(std::vector <float> &ground_coeffs, pcl::
     int r_id = rand() % cloud_cluster->points.size ();
     // plane Ax + By + Cz + D = 0, point (Mx, My, Mz)
     // distance = |A*Mx + B*My + C*Mz + D| / (sqrt(A**2 + B**2 + C**2))
-    float d = fabs(ground_coeffs[0]*cloud_cluster->points[r_id].x + \
+    float d = (ground_coeffs[0]*cloud_cluster->points[r_id].x + \
       ground_coeffs[1]*cloud_cluster->points[r_id].y + ground_coeffs[2]*cloud_cluster->points[r_id].z + \
       ground_coeffs[3])/sqrt(pow(ground_coeffs[0], 2) + pow(ground_coeffs[1], 2) + pow(ground_coeffs[2], 2));
     q.push(d);
@@ -452,5 +452,8 @@ std::vector <float> calc_dist_to_plane(std::vector <float> &ground_coeffs, pcl::
     z++;
   }
   printf("Distance to ground - median: %.4f, max: %.4f, min: %.4f\n", to_return[1], to_return[0], to_return[2]);
+  to_return[0] = fabs(to_return[0]);
+  to_return[1] = fabs(to_return[1]);
+  to_return[2] = fabs(to_return[2]);
   return to_return;
 }
