@@ -238,7 +238,7 @@ class block_detector:
                     tmp_buffer.sort(reverse=True)
                     for i, z in enumerate(tmp_buffer):
                         x1, y1, _ = z[1]
-                        cv2.circle(image_with_cnt, (int((bbox[1] + bbox[2]) / 2. + x1), int((bbox[3] + bbox[4])/2. + y1)) , 10, self.cnt_colours[col], 5)
+                        #cv2.circle(image_with_cnt, (int((bbox[1] + bbox[2]) / 2. + x1), int((bbox[3] + bbox[4])/2. + y1)) , 10, self.cnt_colours[col], 5)
                         if tmp_buffer[0][0]/float(z[0]) >= 7 or i >= 2: break
                     cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
