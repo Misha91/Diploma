@@ -1,9 +1,11 @@
+detector_comparison/val_set/*
 hsv_tool/hsv/*
 bags/
 pcd/
 image_pipeline/
 *.pcd
 *.zip
+*.pyc
 ROS/build/*
 ROS/devel/*
 new/build/*
@@ -12,3 +14,6 @@ hsv_tool/1
 hsv_tool/2
 hsv_tool/venv
 ROS_fork_for_vis
+net_training/*
+yola/ds/*
+yola/net_training/*
