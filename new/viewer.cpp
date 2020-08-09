@@ -13,7 +13,7 @@ int user_data;
 void viewerOneOff (pcl::visualization::PCLVisualizer& viewer)
 {
     viewer.setBackgroundColor (0.0, 0.5, 0.0);
-    pcl::PointXYZ o;
+    pcl::PointXYZRGB o;
     o.x = 1.0;
     o.y = 0;
     o.z = 0;
@@ -64,7 +64,7 @@ int main (int argc, char** argv)
   sor.setInputCloud (cloud);
   sor.setLeafSize (0.02f, 0.02f, 0.02f);
   sor.filter (*cloud_filtered);
-  pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered_new(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::PointXYZRGB>::Ptr cloud_filtered_new(new pcl::PointCloud<pcl::PointXYZRGB>);
   pcl::fromPCLPointCloud2(*cloud_filtered, *cloud_filtered_new);
   std::cerr << "Point cloud data: " << cloud_filtered_new->points.size () << " points" << std::endl;
 
@@ -76,7 +76,7 @@ int main (int argc, char** argv)
   pcl::ModelCoefficients::Ptr coefficients (new pcl::ModelCoefficients);
   pcl::PointIndices::Ptr inliers (new pcl::PointIndices);
   // Create the segmentation object
-  pcl::SACSegmentation<pcl::PointXYZ> seg;
+  pcl::SACSegmentation<pcl::PointXYZRGB> seg;
   // Optional
   seg.setOptimizeCoefficients (true);
   // Mandatory

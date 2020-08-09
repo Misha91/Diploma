@@ -3,7 +3,7 @@ import matplotlib.mlab as mlab
 import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import os
-
+import random
 
 mouse_pressed = False
 s_x = s_y = e_x = e_y = -1
@@ -29,7 +29,7 @@ def mouse_callback(event, x, y, flags, param):
         if mouse_pressed:
             image_to_show = np.copy(image)
             cv2.rectangle(image_to_show, (s_x, s_y),
-                          (x, y), (0, 255, 0), 1)
+                          (x, y), (255, 255, 255), 3)
 
     elif event == cv2.EVENT_LBUTTONUP:
         mouse_pressed = False
@@ -142,8 +142,9 @@ def create_dataset():
                 print("Try again!")
 
     #print(all_pics)
-    for i, pic in enumerate(all_pics[offset:]):
-        print(pic)
+    for i in range(len(all_pics)):
+        pic = all_pics[random.randint(0, len(all_pics) - 1)]
+        #pic = all_pics[i]
         image = cv2.imread(pic)
         image_to_show = np.copy(image)
 
@@ -164,23 +165,23 @@ def create_dataset():
 
 
             crop_hsv = np.zeros_like(hsv)
-            crop_hsv[crop_hsv == 0] = -1
+            #crop_hsv[crop_hsv == 0] = -1
             crop_hsv[color_mask == 255] = hsv[color_mask == 255]
-
-            #if np.sum(crop_hsv) == 0: continue
-            vals, bins = np.histogram(crop_hsv[:,:,0], bins=180, range = (0, 180))
+            #crop_hsv[crop_hsv >= 252] = -1
+            print(np.sum(crop_hsv >= 252))
+            vals, bins = np.histogram(crop_hsv[:,:,0], bins=180, range = (1, 179))
             if col not in h_hist_storage:
                 h_hist_storage[col] = np.zeros_like(vals)
             h_hist_storage[col] += vals
 
 
-            vals, bins = np.histogram(crop_hsv[:,:,1], bins=255, range = (0, 255))
+            vals, bins = np.histogram(crop_hsv[:,:,1], bins=255, range = (1, 254))
             if col not in s_hist_storage:
                 s_hist_storage[col] = np.zeros_like(vals)
             s_hist_storage[col] += vals
 
 
-            vals, bins = np.histogram(crop_hsv[:,:,2], bins=255, range = (0, 255))
+            vals, bins = np.histogram(crop_hsv[:,:,2], bins=255, range = (1, 254))
             if col not in v_hist_storage:
                 v_hist_storage[col] = np.zeros_like(vals)
             v_hist_storage[col] += vals
@@ -209,6 +210,37 @@ def create_dataset():
 
         cv2.imwrite("images/" + (8 - len(str(ind*4 + 3)))*"0" + str(ind*4 + 3) + ".jpg", cv2.resize(image, (213, 106)))
         cv2.imwrite("labels/" + (8 - len(str(ind*4 + 3)))*"0" + str(ind*4 + 3) + ".png", cv2.resize(output_mask, (26,16)))
+
+    plt.figure(100)
+    plt.bar(np.arange(len(h_hist_storage['g'])), h_hist_storage['g'], width=3,bottom=0, color = (0.0,1.0,0.0,0.7))
+    plt.bar(np.arange(len(h_hist_storage['b'])), h_hist_storage['b'], width=3,bottom=0, color = (0.0,0.0,1.0,0.7))
+    plt.bar(np.arange(len(h_hist_storage['r'])), h_hist_storage['r'], width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+    # Add title and axis names
+    plt.title('Hue Distribution Histogram')
+    plt.xlabel('Hue')
+    plt.ylabel('Number of pixels')
+
+
+    plt.figure(200)
+    plt.bar(np.arange(len(s_hist_storage['g'])), s_hist_storage['g'], width=3,bottom=0, color = (0.0,1.0,0.0,0.7))
+    plt.bar(np.arange(len(s_hist_storage['b'])), s_hist_storage['b'], width=3,bottom=0, color = (0.0,0.0,1.0,0.7))
+    plt.bar(np.arange(len(s_hist_storage['r'])), s_hist_storage['r'], width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+    # Add title and axis names
+    plt.title('Saturation Distribution Histogram')
+    plt.xlabel('Saturation')
+    plt.ylabel('Number of pixels')
+
+    plt.figure(300)
+    plt.bar(np.arange(len(v_hist_storage['g'])), v_hist_storage['g'], width=3,bottom=0, color = (0.0,1.0,0.0,0.7))
+    plt.bar(np.arange(len(v_hist_storage['b'])), v_hist_storage['b'], width=3,bottom=0, color = (0.0,0.0,1.0,0.7))
+    plt.bar(np.arange(len(v_hist_storage['r'])), v_hist_storage['r'], width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+    # Add title and axis names
+    plt.title('Value Distribution Histogram')
+    plt.xlabel('Value')
+    plt.ylabel('Number of pixels')
+    plt.show()
+
+
 
 
 def hsv_hist():
@@ -245,21 +277,48 @@ def hsv_hist():
                     crop_hsv = cv2.cvtColor(crop, cv2.COLOR_BGR2HSV)
 
                     print("H")
-                    vals, bins = np.histogram(crop_hsv[:,:,0], bins=60, range = (0, 180))
-                    print(bins[:-1][vals!=0])
+                    vals, bins = np.histogram(crop_hsv[:,:,0], bins=180, range = (1, 179))
+                    print(vals)
+                    #print(bins[:-1][vals!=0])
+
+                    plt.figure(100)
+                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+
+                    # Add title and axis names
+                    plt.title('Hue Distribution Histogram')
+                    plt.xlabel('Hue')
+                    plt.ylabel('Number of pixels')
 
                     print("S")
-                    vals, bins = np.histogram(crop_hsv[:,:,1], bins=64, range = (0, 255))
-                    print(bins[:-1][vals!=0])
+                    vals, bins = np.histogram(crop_hsv[:,:,1], bins=255, range = (1, 254))
+                    print(vals)
+                    #print(bins[:-1][vals!=0])
+                    plt.figure(200)
+
+                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+                    # Add title and axis names
+                    plt.title('Saturation Distribution Histogram')
+                    plt.xlabel('Saturation')
+                    plt.ylabel('Number of pixels')
 
                     print("V")
-                    vals, bins = np.histogram(crop_hsv[:,:,2], bins=64, range = (0, 255))
-                    print(bins[:-1][vals!=0])
+                    vals, bins = np.histogram(crop_hsv[:,:,2], bins=255, range = (1, 254))
+                    print(vals)
+                    #print(bins[:-1][vals!=0])
 
 
 
 
 
+
+                    plt.figure(300)
+
+                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+                    # Add title and axis names
+                    plt.title('Value Distribution Histogram')
+                    plt.xlabel('Value')
+                    plt.ylabel('Number of pixels')
+                    plt.show()
 
                 elif k == 27:
                     break

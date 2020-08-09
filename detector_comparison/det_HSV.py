@@ -99,6 +99,7 @@ for x in range(25):
     for col in hsv_filters.keys():
         color_mask = np.zeros_like(image)
         countors[col] = get_countors(hsv, col)
+        
         if len(countors[col]):
             for cnt in countors[col]:
 

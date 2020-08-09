@@ -93,6 +93,7 @@ main (int argc, char** argv)
   ec.extract (cluster_indices);
 
   int j = 0;
+  pcl::PointCloud<pcl::PointXYZRGB> output_cloud;
   for (std::vector<pcl::PointIndices>::const_iterator it = cluster_indices.begin (); it != cluster_indices.end (); ++it)
   {
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_cluster (new pcl::PointCloud<pcl::PointXYZ>);
@@ -102,12 +103,32 @@ main (int argc, char** argv)
     cloud_cluster->height = 1;
     cloud_cluster->is_dense = true;
 
-    std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
-    std::stringstream ss;
-    ss << "cloud_cluster_" << j << ".pcd";
-    writer.write<pcl::PointXYZ> (ss.str (), *cloud_cluster, false); //*
+    std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << j << " data points." << std::endl;
+
     j++;
+    int size_base = output_cloud.size();
+    output_cloud.points.resize(size_base + cloud_cluster->width * cloud_cluster->height);
+
+    for (int q=0; q < (cloud_cluster->width * cloud_cluster->height); q++)
+    {
+      output_cloud.points[size_base + q].x = cloud_cluster->points[q].x;
+      output_cloud.points[size_base + q].y = cloud_cluster->points[q].y;
+      output_cloud.points[size_base + q].z = cloud_cluster->points[q].z;
+      #define uint8_t unsigned char
+      #define uint32_t unsigned int
+      uint8_t r = 255*(uint8_t)(j%3 == 1) , g = 255*(uint8_t)(j%3 == 0), b = 255*(uint8_t)(j%3 == 2);    // Example: Red color
+      uint32_t rgb = ((uint32_t)r << 16 | (uint32_t)g << 8 | (uint32_t)b);
+      output_cloud.points[size_base + q].rgb = *reinterpret_cast<float*>(&rgb);
+    }
+
   }
+
+  output_cloud.width = output_cloud.points.size();
+  output_cloud.height = 1;
+  std::stringstream ss;
+  ss << "cloud_cluster_COL"<< ".pcd";
+  printf("%d stored", j);
+  writer.write<pcl::PointXYZRGB> (ss.str (), output_cloud, false); //*
 
   return (0);
 }
