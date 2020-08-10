@@ -37,13 +37,14 @@ class block_detector:
         self.coeff_ratio = []
         self.first_message = True
         self.P_img = np.zeros((3,4))
+        self.P_dep = np.zeros((3,4))
         self.K_img = np.eye(3)
         self.K_img_inv = np.eye(3)
         self.K_depth = np.eye(3)
         self.K_conv_depth = np.eye(3)
         self.K_conv = np.eye(3)
 
-        self.enlarge_coeff = 1.25 #1.4
+        self.enlarge_coeff = {'b':1.2, 'g':1.35, 'r':1.5} #1.4
 
         # time synchronizer
         self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.1)
@@ -61,19 +62,19 @@ class block_detector:
         self.hsv_filters['g']  = [[78 , 65, 35], [97, 255, 255]]
         self.hsv_filters['r']  = [[0, 100, 80], [6, 255, 255], [170, 100, 80], [180, 255, 255]] #130 180
         self.cnt_colours = {'b' : (255,0,0), 'g' : (0,255,0), 'r' : (0,0,255)}
-
+        self.color_area_min_limit = {'b':0.45, 'g':0.15, 'r':0.10}
 
     def calc_region_area(self, x1, x2, y1, y2):
         x_dist = abs(x2 - x1)
         y_dist = abs(y2 - y1)
         return x_dist * y_dist
 
-    def enlarge_crop(self, x1, x2, y1, y2):
+    def enlarge_crop(self, x1, x2, y1, y2, col):
 
         x_center = (x1 + x2) / 2.0
         y_center = (y1 + y2) / 2.0
-        x_dist = (abs(x2 - x1) / 2.0) * self.enlarge_coeff
-        y_dist = (abs(y2 - y1) / 2.0) * self.enlarge_coeff
+        x_dist = (abs(x2 - x1) / 2.0) * self.enlarge_coeff[col]
+        y_dist = (abs(y2 - y1) / 2.0) * self.enlarge_coeff[col]
 
         x1, x2, y1, y2 = x_center - x_dist, x_center + x_dist, y_center - y_dist, y_center + y_dist
         x1, x2, y1, y2 = 0 if x1 < 0 else x1, 0 if x2 < 0 else x2, 0 if y1 < 0 else y1,  0 if y2 < 0 else y2
@@ -95,13 +96,6 @@ class block_detector:
         in_depth[np.isnan(in_depth)] = 0
 
 
-
-        #in_depth = in_depth/10
-
-        #cv2.imwrite("color.jpg", in_image)
-        #cv2.imwrite("depth.jpg", in_depth)
-
-
         if (self.first_message):
 
             self.K_img[0,0] =  cam_info.K[0]
@@ -118,6 +112,7 @@ class block_detector:
             self.K_depth[1,2] =  depth_info.K[5]
 
             self.P_img[0:3, 0:3] = self.K_img
+            self.P_dep[0:3, 0:3] = self.K_depth
 
             self.K_conv = self.K_depth.dot(self.K_img_inv)
             self.K_conv_depth = self.K_img.dot(np.linalg.inv(self.K_depth))
@@ -133,7 +128,7 @@ class block_detector:
             self.msg_ci.K = depth_info.K
             self.msg_ci.R = depth_info.R
             self.msg_ci.P = depth_info.P
-            print(self.msg_ci.P)
+
             self.msg_ci.binning_x = depth_info.binning_x
             self.msg_ci.binning_y = depth_info.binning_y
 
@@ -162,25 +157,34 @@ class block_detector:
             for i in range(len(countors[col])):
                 y1,y2 = int(boundRect[i][1]), int((boundRect[i][1]+boundRect[i][3]))
                 x1, x2 = int(boundRect[i][0]), int((boundRect[i][0]+boundRect[i][2]))
-                area = self.calc_region_area(x1, x2, y1, y2)
-                bboxes.append([area, x1, x2, y1, y2, col])
+                #area = self.calc_region_area(x1, x2, y1, y2)
+                #bboxes.append([area, x1, x2, y1, y2, col])
+                bboxes.append([cv2.contourArea(countors[col][i]), x1, x2, y1, y2, countors[col][i], col])
 
         bbox_voter = np.zeros((in_image.shape[0], in_image.shape[1]), dtype=np.uint8)
         bboxes.sort(reverse=True)
         for bbox in bboxes:
-            area, x1, x2, y1, y2, col = bbox
+            area, x1_i, x2_i, y1_i, y2_i, cnt, col = bbox
             dummy = np.zeros((in_image.shape[0], in_image.shape[1]), dtype=np.uint8)
-            dummy[y1:y2, x1:x2] = 1
-            a =  (np.logical_and(bbox_voter, dummy)).astype(np.uint8)
+            approx = cv2.approxPolyDP(cnt, self.approx_coeff*cv2.arcLength(cnt, True), True)
+            cv2.fillPoly(dummy, [approx], 1)
+            a =  (np.logical_and(bbox_voter != 0, dummy != 0)).astype(np.uint8)
             intersection = np.sum(a) / float(area)
-            print("COLOR_IMG: ", col, x1, x2, y1, y2, intersection)
 
-            #print(bbox)
-            if intersection < 0.8:
+
+            if DEBUG:
+                print("COLOR_IMG: ", col, intersection)
+                cv2.rectangle(image_with_candidate, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
+
+            if intersection < 0.1:
             #if True:
-                bbox_voter[y1:y2, x1:x2] = 1
+                print(x1_i, x2_i, y1_i, y2_i)
+                bbox_voter[dummy != 0] = 1
+                #cv2.fillPoly(bbox_voter, [approx], 255)
 
-                x1, x2, y1, y2 = self.enlarge_crop(x1, x2, y1, y2)
+
+
+                x1, x2, y1, y2 = self.enlarge_crop(x1_i, x2_i, y1_i, y2_i, col)
 
                 x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
                 x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
@@ -189,12 +193,25 @@ class block_detector:
                 print(mean_dist, area)
                 if (mean_dist < 700): continue
 
+                w_tmp = x2 - x1
+                h_tmp = y2 - y1
+
+                """
+                if (w_tmp*h_tmp > 25000):
+                    print("RESIZED!")
+                    w_tmp = int(w_tmp/2)
+                    h_tmp = int(h_tmp/2)
+                    tmp = in_depth[y1:y2, x1:x2]
+                    cv2.resize(tmp, dsize=(w_tmp, h_tmp), interpolation=cv2.INTER_CUBIC)
+                    self.msg_img.data = tmp.tostring()
+
+                else:
+                """
                 self.msg_img.data = in_depth[y1:y2, x1:x2].tostring()
 
 
 
-                w_tmp = x2 - x1
-                h_tmp = y2 - y1
+
                 self.msg_img.height = h_tmp
                 self.msg_img.width = w_tmp
                 self.msg_img.step = w_tmp * 2
@@ -203,12 +220,12 @@ class block_detector:
                 self.msg_ci.width = w_tmp
                 self.msg_ci.roi.height = h_tmp
                 self.msg_ci.roi.width = w_tmp
+                """
 
+                #bbox_voter[y1:y2, x1:x2] = 1
+                cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
-
-                cv2.rectangle(image_with_candidate, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
-
-
+                """
                 self.test_img_data_pub.publish(self.msg_img)
                 self.test_cam_info_pub.publish(self.msg_ci)
 
@@ -217,6 +234,7 @@ class block_detector:
                     pass
 
                 answer = self.pl_ch_msg_list.pop(0)
+                print("MEAN DIST: ", mean_dist)
                 print(answer)
                 if len(answer) > 2:
                     zones = answer.split(",")[0]
@@ -231,15 +249,41 @@ class block_detector:
                             area = float(tmp[0])
                             proj = self.P_img.dot(np.array([tmp[1], tmp[2], tmp[3], 1.], dtype=float))
                             proj /= proj[-1]
-
-                            tmp_buffer.append([area, proj])
-                            print(area, proj)
+                            if area < self.color_area_min_limit[col]: continue
+                            tmp_buffer.append([area, [float(tmp[1]), float(tmp[2]), float(tmp[3])]])
+                            #print(area, proj)
 
                     tmp_buffer.sort(reverse=True)
                     for i, z in enumerate(tmp_buffer):
-                        x1, y1, _ = z[1]
-                        #cv2.circle(image_with_cnt, (int((bbox[1] + bbox[2]) / 2. + x1), int((bbox[3] + bbox[4])/2. + y1)) , 10, self.cnt_colours[col], 5)
-                        if tmp_buffer[0][0]/float(z[0]) >= 7 or i >= 2: break
+                        xn, yn, zn = z[1]
+                        zn += 0.03
+                        print(xn, yn, zn)
+                        u1 = self.msg_ci.P[2] + (self.msg_ci.P[0]*xn+self.msg_ci.P[3])/float(zn)
+                        v1 = self.msg_ci.P[6] + (self.msg_ci.P[5]*yn+self.msg_ci.P[7])/float(zn)
+
+                        print(u1, v1)
+                        u1 += x1
+                        v1 += y1
+                        d_cent = np.array([u1, v1, 1]).astype(np.uint16)
+                        print(self.msg_ci.P)
+                        print(d_cent)
+                        u2, v2, _ = (self.K_conv_depth.dot(d_cent)).astype(np.uint16)
+                        print(u2, v2)
+                        #x1_i, x2_i, y1_i, y2_i
+                        #if (u2 > x1_i and u2 < x2_i and v2 > y1_i and v2 < y2_i):
+                        draw_circ = False
+                        if (v2 < dummy.shape[0] and u2 < dummy.shape[1] and dummy[v2, u2] != 0):
+                            draw_circ = True
+                        else:
+                            dummy_cent = np.zeros((in_image.shape[0], in_image.shape[1]), dtype=np.uint8)
+                            cv2.circle(dummy_cent, (int(u2), int(v2)) , 2, 1, -1)
+                            if np.sum((np.logical_and(dummy_cent != 0, dummy != 0)).astype(np.uint8)) != 0 :
+                                draw_circ = True
+                        if draw_circ:
+                            cv2.circle(image_with_cnt, (int(u2), int(v2)) , 10, self.cnt_colours[col], 7)
+
+
+                        #if tmp_buffer[0][0]/float(z[0]) >= 7 or i >= 2: break
                     cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
                 #self.pl_ch_msg_list = []

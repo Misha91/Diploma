@@ -33,6 +33,7 @@
 #define CONV_DIST_THRESHOLD 0.01//0.01
 #define MIN_NUM_POINTS_FOR_PLANE 100
 #define POINTS_FOR_DIST_CHECK 31 // TO BE ODD!
+#define MAX_PLANES 7
 
 //#define DEBUG
 //supportive funstions - implementation is below main()
@@ -48,11 +49,15 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
   //Step 1. Segment all planes
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>), cloud_p (new pcl::PointCloud<pcl::PointXYZ>), cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PCLPointCloud2::Ptr cloud_filtered_blob (new pcl::PCLPointCloud2);
-
+  std::cerr << "PointCloud before filtering: " << cloud_blob->width * cloud_blob->height << " data points." << std::endl;
   pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
   sor.setInputCloud (cloud_blob);
-  sor.setLeafSize (0.02f, 0.02f, 0.02f);
+  int leaf_size_mod = (int)(cloud_blob->width * cloud_blob->height / 25000);
+  //sor.setLeafSize (0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod);
+  //sor.setLeafSize (0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod);
+  sor.setLeafSize (0.01f, 0.01f, 0.01f);
   sor.filter (*cloud_filtered_blob);
+
 
   // Convert to the templated PointCloud
   pcl::fromPCLPointCloud2 (*cloud_filtered_blob, *cloud_filtered);
@@ -63,11 +68,11 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
   }
 
 
-  #ifdef DEBUG
+
   std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height << " data points." << std::endl;
 
   // Create writer
-
+  #ifdef DEBUG
   pcl::PCDWriter writer;
   std::stringstream ss_init;
   ss_init << "plane_" << frame_id << ".pcd";
@@ -132,6 +137,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     extract.filter (*cloud_f);
     cloud_filtered.swap (cloud_f);
     i++;
+    if (i >= MAX_PLANES) break;
   }
 
   printf("Found %d planes\n", (int)segm_planes.size());
@@ -204,6 +210,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
 
       std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
       dist_vector = calc_dist_to_plane(ground_coeffs, cloud_cluster);
+      printf("(max-min)/med = %.2f\n", (dist_vector[0] - dist_vector[2]) / dist_vector[1]);
       if ((dist_vector[0] > 0.25 || dist_vector[2] < 0.05) || dist_vector[1] < 0.09)
       {
         printf("rejected %d\n", i * 100 + l);
@@ -216,7 +223,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
       }
       std::vector <float> area_center = cacl_area(cloud_cluster, j);
 
-      if (area_center[0] > 0.01 ) //0.05
+      if (area_center[0] > 0.05 ) //0.05
       {
         #ifdef DEBUG
         std::stringstream ss;
