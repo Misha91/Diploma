@@ -88,7 +88,7 @@ tn = 0
 time_arr = []
 countors = {}
 
-for x in range(25):
+for x in range(75):
     pic = all_pics[random.randint(0, len(all_pics) - 1)]
     print(x, pic)
     image = cv2.imread(pic)
@@ -99,7 +99,7 @@ for x in range(25):
     for col in hsv_filters.keys():
         color_mask = np.zeros_like(image)
         countors[col] = get_countors(hsv, col)
-        
+
         if len(countors[col]):
             for cnt in countors[col]:
 

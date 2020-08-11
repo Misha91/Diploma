@@ -53,6 +53,7 @@ class block_detector:
         self.max_lines_contour = 15
         self.approx_coeff = 0.01 #0.02
         self.hsv_filters = {}
+        self.frame_ctr = 0
         """
         self.hsv_filters['b']  = [[95, 115, 45], [105, 255, 255], [105, 95, 45], [130, 255, 255]]
         self.hsv_filters['g']  = [[70 , 95, 15], [85, 255, 255], [85 , 60, 30], [100, 238, 238]]
@@ -307,6 +308,8 @@ class block_detector:
 
 
         print("--- %s seconds ---" % (time.time() - start_time))
+        print("--------------%s--------------" % self.frame_ctr)
+        self.frame_ctr += 1
         #while(True): pass
         #cv2.imwrite("test.jpg", image_with_cnt)
         #cv2.imshow("test.jpg", image_with_cnt)

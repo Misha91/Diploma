@@ -73,7 +73,7 @@ tp = 0
 tn = 0
 time_arr = []
 
-for x in range(25):
+for x in range(100):
     pic = all_pics[random.randint(0, len(all_pics) - 1)]
     print(x, pic)
     im = PILimage.open(pic)
@@ -85,9 +85,8 @@ for x in range(25):
 
     image_r = to_tensor(in_image)
     # evaluate model
-    print(image_r.shape)
+
     output = model(image_r)
-    print(output.shape)
     out_heat[s_i] = output[0, 0, :, :].detach().cpu().numpy()
     out_heat[s_i] -= threshold_NN
     out_heat[s_i][out_heat[s_i] < 0] = 0
@@ -126,8 +125,8 @@ for x in range(25):
     time_arr.append(time.time() - start)
     in_image = cv2.cvtColor(in_image, cv2.COLOR_RGB2BGR)
     cv2.imshow("res", in_image)
-    get_response()
-    """
+
+
     try:
         if not (get_response()):
             fp += int(input("fp? +"))
@@ -137,8 +136,8 @@ for x in range(25):
 
     except:
         print("wrong input!")
-    """
-print("fp, fn, tp")
-print(fp, fn, tp)
-print("avg time per pic:")
-print(np.mean(np.array([time_arr])))
+
+    print("fp, fn, tp")
+    print(fp, fn, tp)
+    print("avg time per pic:")
+    print(np.mean(np.array([time_arr])))
