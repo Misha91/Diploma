@@ -2,7 +2,7 @@
 import sys, time, os
 import numpy as np
 import cv2
-# Ros
+
 import rospy
 from sensor_msgs.msg import Image, CameraInfo
 from geometry_msgs.msg import PointStamped
@@ -18,20 +18,24 @@ CAL_COLOR = 'g'
 CAL_PRINT_SINGLE = 0
 
 
+"""
+Main class for object detection
+"""
 class block_detector:
     def __init__(self):
         rospy.init_node('block_detector')
-        self.image_subscriber = message_filters.Subscriber("/uav/rs_d435/color/image_raw", Image) #/uav/rs_d435/color/image_raw
-        self.cam_info_subscriber = message_filters.Subscriber("/uav/rs_d435/color/camera_info", CameraInfo)
-        self.depth_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/image_rect_raw", Image)
-        self.depth_info_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/camera_info", CameraInfo)
+        self.image_subscriber = message_filters.Subscriber("/uav/rs_d435/color/image_raw", Image) #color image topic
+        self.cam_info_subscriber = message_filters.Subscriber("/uav/rs_d435/color/camera_info", CameraInfo) #color camera info
+        self.depth_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/image_rect_raw", Image) #depth image topic
+        self.depth_info_subscriber = message_filters.Subscriber("/uav/rs_d435/depth/camera_info", CameraInfo) #depth camera info
         self.plane_check_subscriber = rospy.Subscriber("/plane_check_result", String, self.plane_check_callback)
         self.pl_ch_msg_list = []
 
-        self.bbox_img_data_pub = rospy.Publisher('bbox_image', Image, queue_size=10)
-        self.bbox_cand_img_data_pub = rospy.Publisher('bbox_image_candidate', Image, queue_size=10)
-        self.test_img_data_pub = rospy.Publisher('image_rect', Image, queue_size=10)
-        self.test_cam_info_pub = rospy.Publisher('camera_info', CameraInfo, queue_size=10)
+        self.bbox_img_data_pub = rospy.Publisher('bbox_image', Image, queue_size=10) #FINAL IMAGE TOPIC
+        self.bbox_cand_img_data_pub = rospy.Publisher('bbox_image_candidate', Image, queue_size=10) #all candidates image
+        self.test_img_data_pub = rospy.Publisher('image_rect', Image, queue_size=10) #output topic for depth crop
+        self.test_cam_info_pub = rospy.Publisher('camera_info', CameraInfo, queue_size=10) #output topic for camera info
+
         self.msg_img = Image()
         self.msg_ci = CameraInfo()
         self.coeff_ratio = []
@@ -46,7 +50,6 @@ class block_detector:
 
         self.enlarge_coeff = {'b':1.2, 'g':1.35, 'r':1.5} #1.4
 
-        # time synchronizer
         self.ts = message_filters.ApproximateTimeSynchronizer([self.image_subscriber,  self.depth_subscriber, self.cam_info_subscriber, self.depth_info_subscriber], 5, 0.1)
         self.ts.registerCallback(self.callback)
         self.area_thresh = 400
@@ -54,6 +57,7 @@ class block_detector:
         self.approx_coeff = 0.01 #0.02
         self.hsv_filters = {}
         self.frame_ctr = 0
+        self.time_calc = []
         """
         self.hsv_filters['b']  = [[95, 115, 45], [105, 255, 255], [105, 95, 45], [130, 255, 255]]
         self.hsv_filters['g']  = [[70 , 95, 15], [85, 255, 255], [85 , 60, 30], [100, 238, 238]]
@@ -65,11 +69,15 @@ class block_detector:
         self.cnt_colours = {'b' : (255,0,0), 'g' : (0,255,0), 'r' : (0,0,255)}
         self.color_area_min_limit = {'b':0.45, 'g':0.15, 'r':0.10}
 
+    #Function calculates bbox area
     def calc_region_area(self, x1, x2, y1, y2):
         x_dist = abs(x2 - x1)
         y_dist = abs(y2 - y1)
         return x_dist * y_dist
 
+
+
+    #Function returns enlarged bbox coordinates based on region color
     def enlarge_crop(self, x1, x2, y1, y2, col):
 
         x_center = (x1 + x2) / 2.0
@@ -83,19 +91,23 @@ class block_detector:
         return x1, x2, y1, y2
 
 
+    #Function to store geometrical verification results
     def plane_check_callback(self, msg):
         self.pl_ch_msg_list.append(msg.data)
 
+
+
+    #Main detector routine
     def callback(self, image_data, depth_data, cam_info, depth_info):
         start_time = time.time()
         np_data = np.fromstring(image_data.data, np.uint8)
-
         in_image = cv2.cvtColor(np_data.reshape(image_data.height, image_data.width,3), cv2.COLOR_RGB2BGR)
-        #in_image = np_data.reshape(image_data.height, image_data.width,3)
+
         np_data = np.fromstring(depth_data.data, np.uint16)
         in_depth = np_data.reshape(depth_data.height, depth_data.width)
         in_depth[np.isnan(in_depth)] = 0
 
+        draw_circ = False
 
         if (self.first_message):
 
@@ -145,6 +157,7 @@ class block_detector:
             self.msg_img.header = depth_data.header
             self.msg_ci.header = depth_data.header
 
+        #color segmentation
         hsv = cv2.cvtColor(in_image, cv2.COLOR_BGR2HSV)
         image_with_candidate = in_image.copy()
         image_with_cnt = in_image.copy()
@@ -158,10 +171,9 @@ class block_detector:
             for i in range(len(countors[col])):
                 y1,y2 = int(boundRect[i][1]), int((boundRect[i][1]+boundRect[i][3]))
                 x1, x2 = int(boundRect[i][0]), int((boundRect[i][0]+boundRect[i][2]))
-                #area = self.calc_region_area(x1, x2, y1, y2)
-                #bboxes.append([area, x1, x2, y1, y2, col])
                 bboxes.append([cv2.contourArea(countors[col][i]), x1, x2, y1, y2, countors[col][i], col])
 
+        #region voting
         bbox_voter = np.zeros((in_image.shape[0], in_image.shape[1]), dtype=np.uint8)
         bboxes.sort(reverse=True)
         for bbox in bboxes:
@@ -178,20 +190,17 @@ class block_detector:
                 cv2.rectangle(image_with_candidate, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
             if intersection < 0.1:
-            #if True:
-                print(x1_i, x2_i, y1_i, y2_i)
+                #geometrical verification
+                if DEBUG: print(x1_i, x2_i, y1_i, y2_i)
                 bbox_voter[dummy != 0] = 1
-                #cv2.fillPoly(bbox_voter, [approx], 255)
-
 
 
                 x1, x2, y1, y2 = self.enlarge_crop(x1_i, x2_i, y1_i, y2_i, col)
-
                 x1, y1, _ = (self.K_conv.dot(np.array([x1, y1, 1]))).astype(int)
                 x2, y2, _ = (self.K_conv.dot(np.array([x2, y2, 1]))).astype(int)
-                #print("DEPTH: ", x1, x2, y1, y2)
+
                 mean_dist = in_depth[y1:y2, x1:x2].mean()
-                print(mean_dist, area)
+                if DEBUG: print(mean_dist, area)
                 if (mean_dist < 700): continue
 
                 w_tmp = x2 - x1
@@ -208,10 +217,8 @@ class block_detector:
 
                 else:
                 """
+
                 self.msg_img.data = in_depth[y1:y2, x1:x2].tostring()
-
-
-
 
                 self.msg_img.height = h_tmp
                 self.msg_img.width = w_tmp
@@ -221,22 +228,18 @@ class block_detector:
                 self.msg_ci.width = w_tmp
                 self.msg_ci.roi.height = h_tmp
                 self.msg_ci.roi.width = w_tmp
-                """
 
-                #bbox_voter[y1:y2, x1:x2] = 1
-                cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
-
-                """
                 self.test_img_data_pub.publish(self.msg_img)
                 self.test_cam_info_pub.publish(self.msg_ci)
 
-
+                #waiting for the response
                 while (len(self.pl_ch_msg_list) == 0):
                     pass
 
+                #processing of response and object center projection
                 answer = self.pl_ch_msg_list.pop(0)
-                print("MEAN DIST: ", mean_dist)
-                print(answer)
+                if DEBUG: print("MEAN DIST: ", mean_dist)
+
                 if len(answer) > 2:
                     zones = answer.split(",")[0]
                     zones = zones[:-1].split("x")
@@ -246,33 +249,26 @@ class block_detector:
                         for z in zones:
 
                             tmp = z.split("#")
-                            print(tmp)
+                            if DEBUG: print(tmp)
                             area = float(tmp[0])
-                            proj = self.P_img.dot(np.array([tmp[1], tmp[2], tmp[3], 1.], dtype=float))
-                            proj /= proj[-1]
                             if area < self.color_area_min_limit[col]: continue
                             tmp_buffer.append([area, [float(tmp[1]), float(tmp[2]), float(tmp[3])]])
-                            #print(area, proj)
+
 
                     tmp_buffer.sort(reverse=True)
                     for i, z in enumerate(tmp_buffer):
                         xn, yn, zn = z[1]
                         zn += 0.03
-                        print(xn, yn, zn)
+
                         u1 = self.msg_ci.P[2] + (self.msg_ci.P[0]*xn+self.msg_ci.P[3])/float(zn)
                         v1 = self.msg_ci.P[6] + (self.msg_ci.P[5]*yn+self.msg_ci.P[7])/float(zn)
-
-                        print(u1, v1)
                         u1 += x1
                         v1 += y1
                         d_cent = np.array([u1, v1, 1]).astype(np.uint16)
-                        print(self.msg_ci.P)
-                        print(d_cent)
+
                         u2, v2, _ = (self.K_conv_depth.dot(d_cent)).astype(np.uint16)
-                        print(u2, v2)
-                        #x1_i, x2_i, y1_i, y2_i
-                        #if (u2 > x1_i and u2 < x2_i and v2 > y1_i and v2 < y2_i):
-                        draw_circ = False
+
+
                         if (v2 < dummy.shape[0] and u2 < dummy.shape[1] and dummy[v2, u2] != 0):
                             draw_circ = True
                         else:
@@ -283,13 +279,8 @@ class block_detector:
                         if draw_circ:
                             cv2.circle(image_with_cnt, (int(u2), int(v2)) , 10, self.cnt_colours[col], 7)
 
-
-                        #if tmp_buffer[0][0]/float(z[0]) >= 7 or i >= 2: break
                     cv2.rectangle(image_with_cnt, (bbox[1], bbox[3]), (bbox[2], bbox[4]), self.cnt_colours[col], 2)
 
-                #self.pl_ch_msg_list = []
-                #time.sleep(10)
-                #while(True): pass
 
         if DEBUG:
             tmp_bbox = Image()
@@ -306,49 +297,33 @@ class block_detector:
             self.bbox_cand_img_data_pub.publish(tmp_bbox)
 
 
-
-        print("--- %s seconds ---" % (time.time() - start_time))
+        if draw_circ:
+            self.time_calc.append((time.time() - start_time))
+            print("--- %s seconds ---" % self.time_calc[-1])
+            print("--- avg %s seconds ---" % np.mean(np.array([self.time_calc])))
         print("--------------%s--------------" % self.frame_ctr)
         self.frame_ctr += 1
-        #while(True): pass
-        #cv2.imwrite("test.jpg", image_with_cnt)
-        #cv2.imshow("test.jpg", image_with_cnt)
-        #cv2.imshow("depth", depth)
-        #cv2.waitKey()
-        #cv2.destroyAllWindows()
 
+    #Function returns contours of color regions
     def get_countors(self, image, color):
         global CAL_PRINT_SINGLE
         if (CAL_PRINT_SINGLE): print(color)
 
         if len(self.hsv_filters[color]) == 2:
             mask = cv2.inRange(image, np.array(self.hsv_filters[color][0]), np.array(self.hsv_filters[color][1]))
-            if (color == CAL_COLOR):
-                pass
-                #cv2.imshow("mask", mask)
-
 
 
         elif len(self.hsv_filters[color]) == 4:
             mask1 = cv2.inRange(image, np.array(self.hsv_filters[color][0]), np.array(self.hsv_filters[color][1]))
             mask2 = cv2.inRange(image, np.array(self.hsv_filters[color][2]), np.array(self.hsv_filters[color][3]))
             mask = mask1 + mask2
-            if (color == CAL_COLOR):
-                pass
-                #cv2.imshow("mask1", mask1)
-                #cv2.imshow("mask2", mask2)
-                #cv2.imshow("mask", mask)
-
-
 
 
         countors_toRet = []
 
         if int(cv2.__version__[0]) > 3:
-            # Opencv 4.x.x
             contours, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
         else:
-            # Opencv 3.x.x
             _, contours, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 
@@ -357,13 +332,13 @@ class block_detector:
         for i, cnt in enumerate(contours):
             if (cv2.contourArea(cnt) > self.area_thresh):
                 approx = cv2.approxPolyDP(cnt, self.approx_coeff*cv2.arcLength(cnt, True), True)
-                #print(len(approx))
                 if len(approx) > self.max_lines_contour: continue
                 countors_toRet.append(cnt)
-                #boundRect.append(cv2.boundingRect(cv2.approxPolyDP(cnt, 3, True)))
                 boundRect.append(cv2.boundingRect(approx))
 
         return countors_toRet, boundRect
+
+
 
 if __name__ == '__main__':
 

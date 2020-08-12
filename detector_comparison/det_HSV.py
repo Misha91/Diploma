@@ -2,7 +2,6 @@
 import sys, time
 import numpy as np
 
-
 import cv2
 import os
 
@@ -88,7 +87,7 @@ tn = 0
 time_arr = []
 countors = {}
 
-for x in range(75):
+for x in range(100):
     pic = all_pics[random.randint(0, len(all_pics) - 1)]
     print(x, pic)
     image = cv2.imread(pic)
@@ -120,7 +119,7 @@ for x in range(75):
     except:
         print("wrong input!")
 
-print("fp, fn, tp")
-print(fp, fn, tp)
-print("avg time per pic:")
-print(np.mean(np.array([time_arr])))
+    print("fp, fn, tp")
+    print(fp, fn, tp)
+    print("avg time per pic:")
+    print(np.mean(np.array([time_arr])))

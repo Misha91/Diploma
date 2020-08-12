@@ -1,0 +1,4 @@
+The main workspace for cuboid object detection
+
+To run
+roslaunch pcl_processor a.launch

@@ -1,8 +1,0 @@
-prefix=/home/mikhail/Desktop/dev/Diploma/ROS/install
-
-Name: main_thread
-Description: Description of main_thread
-Version: 0.0.0
-Cflags: 
-Libs: -L${prefix}/lib 
-Requires: 

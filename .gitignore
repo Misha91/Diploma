@@ -1,5 +1,7 @@
 detector_comparison/val_set/*
 hsv_tool/hsv/*
+hsv_tool/images/*
+hsv_tool/labels/*
 bags/
 pcd/
 image_pipeline/
@@ -15,5 +17,5 @@ hsv_tool/2
 hsv_tool/venv
 ROS_fork_for_vis
 net_training/*
-yola/ds/*
-yola/net_training/*
+yolo/ds/*
+yolo/net_training/*

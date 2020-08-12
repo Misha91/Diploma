@@ -2,14 +2,9 @@
 import sys, time
 import numpy as np
 
-# Ros
-
 from PIL import Image as PILimage
-
-
-# Pytorch
 import torch
-# Our library
+
 import network
 import utils
 import cv2
@@ -50,7 +45,7 @@ model.load_state_dict(torch.load(weights_path, map_location='cpu'))
 
 
 out_heat = {}
-det_treshhold = 4.0
+
 scales = [1]#, 1.5, 2, 3]
 s_i = 0
 threshold_NN = 4

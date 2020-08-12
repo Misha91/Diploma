@@ -52,10 +52,8 @@ def get_countors(image, color):
     countors_toRet = []
 
     if int(cv2.__version__[0]) > 3:
-        # Opencv 4.x.x
         contours, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
     else:
-        # Opencv 3.x.x
         _, contours, hier = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
 
@@ -118,7 +116,7 @@ def create_dataset():
                    fldr[root] = 1
 
     all_pics.sort()
-    print(all_pics[1252])
+
     if int(answr) != 1:
         print("Select folder to start with:")
         for i, f in enumerate(fldr.keys()):
@@ -142,7 +140,8 @@ def create_dataset():
                 print("Try again!")
 
     #print(all_pics)
-    for i in range(len(all_pics)):
+    #for i in range(len(all_pics)):
+    for i in range(100):
         pic = all_pics[random.randint(0, len(all_pics) - 1)]
         #pic = all_pics[i]
         image = cv2.imread(pic)
@@ -211,33 +210,45 @@ def create_dataset():
         cv2.imwrite("images/" + (8 - len(str(ind*4 + 3)))*"0" + str(ind*4 + 3) + ".jpg", cv2.resize(image, (213, 106)))
         cv2.imwrite("labels/" + (8 - len(str(ind*4 + 3)))*"0" + str(ind*4 + 3) + ".png", cv2.resize(output_mask, (26,16)))
 
+
+    h_hist_storage['g'] = h_hist_storage['g'].astype(np.float64) / float(np.sum(h_hist_storage['g']))
+    h_hist_storage['r'] = h_hist_storage['r'].astype(np.float64) / float(np.sum(h_hist_storage['r']))
+    h_hist_storage['b'] = h_hist_storage['b'].astype(np.float64) / float(np.sum(h_hist_storage['b']))
     plt.figure(100)
     plt.bar(np.arange(len(h_hist_storage['g'])), h_hist_storage['g'], width=3,bottom=0, color = (0.0,1.0,0.0,0.7))
     plt.bar(np.arange(len(h_hist_storage['b'])), h_hist_storage['b'], width=3,bottom=0, color = (0.0,0.0,1.0,0.7))
     plt.bar(np.arange(len(h_hist_storage['r'])), h_hist_storage['r'], width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
-    # Add title and axis names
+
     plt.title('Hue Distribution Histogram')
     plt.xlabel('Hue')
-    plt.ylabel('Number of pixels')
+    plt.ylabel('Probability')
 
+
+    s_hist_storage['g'] = s_hist_storage['g'].astype(np.float64) / float(np.sum(s_hist_storage['g']))
+    s_hist_storage['r'] = s_hist_storage['r'].astype(np.float64) / float(np.sum(s_hist_storage['r']))
+    s_hist_storage['b'] = s_hist_storage['b'].astype(np.float64) / float(np.sum(s_hist_storage['b']))
 
     plt.figure(200)
     plt.bar(np.arange(len(s_hist_storage['g'])), s_hist_storage['g'], width=3,bottom=0, color = (0.0,1.0,0.0,0.7))
     plt.bar(np.arange(len(s_hist_storage['b'])), s_hist_storage['b'], width=3,bottom=0, color = (0.0,0.0,1.0,0.7))
     plt.bar(np.arange(len(s_hist_storage['r'])), s_hist_storage['r'], width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
-    # Add title and axis names
+
     plt.title('Saturation Distribution Histogram')
     plt.xlabel('Saturation')
-    plt.ylabel('Number of pixels')
+    plt.ylabel('Probability')
+
+    v_hist_storage['g'] = v_hist_storage['g'].astype(np.float64) / float(np.sum(v_hist_storage['g']))
+    v_hist_storage['r'] = v_hist_storage['r'].astype(np.float64) / float(np.sum(v_hist_storage['r']))
+    v_hist_storage['b'] = v_hist_storage['b'].astype(np.float64) / float(np.sum(v_hist_storage['b']))
 
     plt.figure(300)
     plt.bar(np.arange(len(v_hist_storage['g'])), v_hist_storage['g'], width=3,bottom=0, color = (0.0,1.0,0.0,0.7))
     plt.bar(np.arange(len(v_hist_storage['b'])), v_hist_storage['b'], width=3,bottom=0, color = (0.0,0.0,1.0,0.7))
     plt.bar(np.arange(len(v_hist_storage['r'])), v_hist_storage['r'], width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
-    # Add title and axis names
+
     plt.title('Value Distribution Histogram')
     plt.xlabel('Value')
-    plt.ylabel('Number of pixels')
+    plt.ylabel('Probability')
     plt.show()
 
 
@@ -247,7 +258,7 @@ def hsv_hist():
     global image, image_to_show
     cv2.namedWindow('image')
     cv2.setMouseCallback('image', mouse_callback)
-    print("Image will be runned one by one. Select zone and press \"c\" to get histogram or Esc for next image")
+    print("Image will be runned one by one. Select zone and press \"c\" to get histogram or Esc for next image. Once histogram has been plotted, you should close the windows to proceed to next images")
     for root, dirs, files in os.walk("2", topdown=False):
        for name in files:
             print(os.path.join(root, name))
@@ -282,7 +293,7 @@ def hsv_hist():
                     #print(bins[:-1][vals!=0])
 
                     plt.figure(100)
-                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (0.5,0.5,0.5,0.7))
 
                     # Add title and axis names
                     plt.title('Hue Distribution Histogram')
@@ -295,7 +306,7 @@ def hsv_hist():
                     #print(bins[:-1][vals!=0])
                     plt.figure(200)
 
-                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (0.5,0.5,0.5,0.7))
                     # Add title and axis names
                     plt.title('Saturation Distribution Histogram')
                     plt.xlabel('Saturation')
@@ -307,13 +318,9 @@ def hsv_hist():
                     #print(bins[:-1][vals!=0])
 
 
-
-
-
-
                     plt.figure(300)
 
-                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (1.0,0.0,0.0,0.7))
+                    plt.bar(np.arange(len(vals)), vals, width=3,bottom=0, color = (0.5,0.5,0.5,0.7))
                     # Add title and axis names
                     plt.title('Value Distribution Histogram')
                     plt.xlabel('Value')

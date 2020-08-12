@@ -1,0 +1,1 @@
+Detector comparison could be runned using either det_HSV.py for color segm or det_NN.py for Neural Network solutions

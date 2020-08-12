@@ -1,2 +1,0 @@
-depth_image_proc:detector:pcl_processor
--DCATKIN_DEVEL_PREFIX=/home/mikhail/Desktop/dev/Diploma/ROS/devel -DCMAKE_INSTALL_PREFIX=/home/mikhail/Desktop/dev/Diploma/ROS/install -G Unix Makefiles

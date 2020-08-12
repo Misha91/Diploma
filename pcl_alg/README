@@ -1,0 +1,12 @@
+The folder is isolated envorinment to work with point clouds. Point clouds are made from the bags and were used for debugging purpose. 
+
+The code has not been updated since migration to ROS.
+
+To run the code it's needed to be compiled using CMake.
+
+To run:
+./viewer <filename.pcd>
+./wrapped <filename.pcd>
+
+viewer is used to visualize PCD files
+Wrapped is solution, that wrapped from other individual files

@@ -49,11 +49,13 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
   //Step 1. Segment all planes
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_filtered (new pcl::PointCloud<pcl::PointXYZ>), cloud_p (new pcl::PointCloud<pcl::PointXYZ>), cloud_f (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::PCLPointCloud2::Ptr cloud_filtered_blob (new pcl::PCLPointCloud2);
+  #ifdef DEBUG
   std::cerr << "PointCloud before filtering: " << cloud_blob->width * cloud_blob->height << " data points." << std::endl;
+  #endif
+
   pcl::VoxelGrid<pcl::PCLPointCloud2> sor;
   sor.setInputCloud (cloud_blob);
-  int leaf_size_mod = (int)(cloud_blob->width * cloud_blob->height / 25000);
-  //sor.setLeafSize (0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod);
+  //int leaf_size_mod = (int)(cloud_blob->width * cloud_blob->height / 25000);
   //sor.setLeafSize (0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod, 0.01f + 0.01f*leaf_size_mod);
   sor.setLeafSize (0.01f, 0.01f, 0.01f);
   sor.filter (*cloud_filtered_blob);
@@ -67,12 +69,9 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     return toRet;
   }
 
-
-
-  std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height << " data points." << std::endl;
-
   // Create writer
   #ifdef DEBUG
+  std::cerr << "PointCloud after filtering: " << cloud_filtered->width * cloud_filtered->height << " data points." << std::endl;
   pcl::PCDWriter writer;
   std::stringstream ss_init;
   ss_init << "plane_" << frame_id << ".pcd";
@@ -116,9 +115,6 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     extract.filter (*cloud_p);
 
 
-    //std::vector<int> ind;
-    //pcl::removeNaNFromPointCloud(*cloud_p, *cloud_p, ind);
-
     //first plane supposed to be a ground - store ground plane coefficients
     if (segm_planes.size() == 0)
     {
@@ -127,7 +123,6 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
       ground_coeffs.push_back(coefficients->values[2]);
       ground_coeffs.push_back(coefficients->values[3]);
     }
-
 
 
     segm_planes.push_back(*cloud_p);
@@ -183,7 +178,9 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
     //END OF STEP 3
 
     //STEP 4. Split planes on separate cluster
+    #ifdef DEBUG
     std::cerr << "PointCloud representing the planar component: " << cloudPTR->width * cloudPTR->height << " data points." << std::endl;
+    #endif
 
     pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
     tree->setInputCloud (cloudPTR);
@@ -207,8 +204,10 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
       cloud_cluster->is_dense = true;
 
       l++;
-
+      #ifdef DEBUG
       std::cout << "PointCloud representing the Cluster: " << cloud_cluster->points.size () << " data points." << std::endl;
+      #endif
+
       dist_vector = calc_dist_to_plane(ground_coeffs, cloud_cluster);
       printf("(max-min)/med = %.2f\n", (dist_vector[0] - dist_vector[2]) / dist_vector[1]);
       if ((dist_vector[0] > 0.25 || dist_vector[2] < 0.05) || dist_vector[1] < 0.09)
@@ -255,41 +254,7 @@ std::string detect_planes(pcl::PCLPointCloud2::Ptr cloud_blob, int frame_id)
 }
 
 
-
-
-pcl::PointCloud<pcl::PointXYZ>::Ptr smooth(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud){
-  // Create a KD-Tree
-  pcl::search::KdTree<pcl::PointXYZ>::Ptr tree (new pcl::search::KdTree<pcl::PointXYZ>);
-
-  // Output has the PointNormal type in order to store the normals calculated by MLS
-  pcl::PointCloud<pcl::PointNormal> mls_points;
-
-  // Init object (second point type is for the normals, even if unused)
-  pcl::MovingLeastSquares<pcl::PointXYZ, pcl::PointNormal> mls;
-
-  mls.setComputeNormals (true);
-
-  // Set parameters
-  mls.setInputCloud (cloud);
-  mls.setPolynomialOrder (2);
-  mls.setSearchMethod (tree);
-  mls.setSearchRadius (0.03);
-
-  // Reconstruct
-  mls.process (mls_points);
-
-  pcl::PointCloud<pcl::PointXYZ>::Ptr mls_cloud (new pcl::PointCloud<pcl::PointXYZ>);
-  mls_cloud->resize(mls_points.size());
-
-  for (size_t i = 0; i < mls_points.points.size(); ++i)
-  {
-      mls_cloud->points[i].x = mls_points.points[i].x; //error
-      mls_cloud->points[i].y = mls_points.points[i].y; //error
-      mls_cloud->points[i].z = mls_points.points[i].z; //error
-  }
-  return mls_cloud;
-}
-
+//inherited from http://www.pcl-users.org/Area-surface-and-registration-td4021490.html
 std::vector <float> calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &polygon )
 {
   std::vector <float> result;
@@ -308,7 +273,6 @@ std::vector <float> calculateAreaPolygon(const pcl::PointCloud<pcl::PointXYZ> &p
       va = polygon[i].getVector3fMap();
       vb = polygon[j].getVector3fMap();
       res += va.cross(vb);
-      //std::cerr << va << std::endl;
   }
   area=res.norm();
   x_c /= num_points;
@@ -333,9 +297,12 @@ std::vector <float> cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
   pass.setFilterFieldName ("z");
   pass.setFilterLimits (-5, 5);
   pass.filter (*cloud_filtered);
+
+  #ifdef DEBUG
   std::cerr << "PointCloud after filtering has: "
             << cloud_filtered->points.size () << " data points." << std::endl;
-  //std::cerr << "width " << cloud_filtered->width << ", height " << cloud_filtered->height << std::endl;
+  #endif
+
   if (cloud_filtered->points.size () == 0)
   {
 
@@ -355,8 +322,11 @@ std::vector <float> cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
 
   seg.setInputCloud (cloud_filtered);
   seg.segment (*inliers, *coefficients);
+
+  #ifdef DEBUG
   std::cerr << "PointCloud after segmentation has: "
             << inliers->indices.size () << " inliers." << std::endl;
+  #endif
 
   // Project the model inliers
   pcl::ProjectInliers<pcl::PointXYZ> proj;
@@ -365,18 +335,16 @@ std::vector <float> cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
   proj.setInputCloud (cloud_filtered);
   proj.setModelCoefficients (coefficients);
   proj.filter (*cloud_projected);
+  #ifdef DEBUG
   std::cerr << "PointCloud after projection has: "
             << cloud_projected->points.size () << " data points." << std::endl;
+  #endif
 
   // Create a Concave Hull representation of the projected inliers
   pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_hull (new pcl::PointCloud<pcl::PointXYZ>);
   pcl::ConvexHull<pcl::PointXYZ> chull;
   chull.setInputCloud (cloud_projected);
-  //chull.setAlpha (0.1);
   chull.reconstruct (*cloud_hull);
-
-
-  //chull.setComputeAreaVolume(true);
 
   std::cerr << "Convex hull has: " << cloud_hull->points.size ()
             << " data points." << std::endl;
@@ -390,8 +358,6 @@ std::vector <float> cacl_area(pcl::PointCloud<pcl::PointXYZ>::Ptr cloud, int j)
   std::cout << ss.str () << " is stored!" << std::endl;
   #endif
 
-  //
-  //writer.write ("table_scene_mug_stereo_textured_hull.pcd", *cloud_hull, false);
   return result;
 
 }
