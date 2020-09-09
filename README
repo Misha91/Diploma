@@ -1,0 +1,18 @@
+The folder is compilation of most important code parts of the Diploma work. The KOS upload limited by 50 MB, hence, all the visual data needed for the code testing will be provided through google drive links
+
+ROS bags to test the final solution (ROS):
+1. https://drive.google.com/file/d/1L4LY2-0ZD8nJW4Pj9YNN5cS85nwfVEMS/view?usp=sharing
+2. https://drive.google.com/file/d/1oMAg9KyIRFUUpkyQSvgqPkRMnW1pKGaO/view?usp=sharing
+
+Image dataset for detector comparison
+1. https://drive.google.com/file/d/1c56udxtOXWwF3QBZUzVAiRxCZzzd2sgz/view?usp=sharing
+
+Image dataset for hsv_tool
+1. https://drive.google.com/file/d/1zJblhsSUpbHTNWvjQbfWvImUVmzq3-Ch/view?usp=sharing
+
+PCD files dataset for pcl_alg
+1. https://drive.google.com/file/d/1uEBLTbqfB-6nwCo4F1hTXJqlO7ywyDpY/view?usp=sharing
+
+Training datast for yolo and pre-trained weights
+1. https://drive.google.com/file/d/1Y2h7bBKJnjA9PiZa6cSGkDwvccCWqkSX/view?usp=sharing
+2. https://drive.google.com/file/d/1lKliNAQ4EUs47BjdJBTHauU69_QqlY1N/view?usp=sharing
