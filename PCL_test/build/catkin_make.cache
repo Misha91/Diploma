@@ -1,2 +1,0 @@
-my_pcl_tutorial
--DCATKIN_DEVEL_PREFIX=/home/mikhail/Desktop/dev/Diploma/PCL_test/devel -DCMAKE_INSTALL_PREFIX=/home/mikhail/Desktop/dev/Diploma/PCL_test/install -G Unix Makefiles
